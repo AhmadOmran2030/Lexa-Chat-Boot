@@ -151,6 +151,9 @@ with st.sidebar:
     if st.button("تحديث الفهرس", use_container_width=True):
         invalidate()
         st.rerun()
+    if st.button("مسح المحادثة", use_container_width=True):
+        st.session_state.chat_history = []
+        st.rerun()
 
 st.markdown('<section class="hero"><div class="hero-kicker">LEXGO LEGAL ASSISTANT</div><h1>مستشارك القانوني الذكي</h1><p>تحدث مع مكتبتك القانونية بالعربية. ارفع القوانين، اسأل عن أي مادة، واحصل على إجابة موثقة بالمصدر والصفحة.</p></section>', unsafe_allow_html=True)
 
@@ -173,22 +176,32 @@ with st.expander("عرض القوانين المفهرسة", expanded=False):
         if law.get("extraction", {}).get("needs_review"):
             st.warning("يحتاج هذا القانون إلى مراجعة الحقول المستخرجة.")
 
-question = st.chat_input("مثال: ما نص المادة 7 من القانون رقم 12 لسنة 2020؟")
-if question:
-    st.chat_message("user").write(question)
-    filters = query_filters(question)
-    with st.chat_message("assistant"):
-        with st.spinner("جاري البحث..."):
-            results = index.search(question, k=8)
-            if not results:
-                st.warning("لم يتم العثور على نص مطابق.")
-                st.stop()
-            st.markdown('<div class="section-title">الإجابة القانونية</div>', unsafe_allow_html=True)
-            st.markdown(ask_llm(question, results))
-            st.divider()
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+        if message["role"] == "assistant" and message.get("results"):
             st.markdown('<div class="section-title">المصادر والتحقق</div>', unsafe_allow_html=True)
-            for i, result in enumerate(results, 1):
+            for i, result in enumerate(message["results"], 1):
                 citation = f"القانون {result.get('law_number') or '؟'} لسنة {result.get('law_year') or '؟'} — المادة {result.get('article_number') or '؟'} — الفقرة {result.get('paragraph_number') or '؟'} — البند {result.get('clause_number') or '؟'} — صـ {result.get('page_start') or '؟'}"
                 with st.expander(f"المصدر {i}  ·  تطابق {result.get('score')}%  ·  المادة {result.get('article_number') or '؟'}"):
                     st.markdown(f'<div class="law-card"><div class="source-chip">{citation}</div><p style="color:#e2e8f0;line-height:2;margin-top:12px">{result.get("text")}</p></div>', unsafe_allow_html=True)
-                    st.caption(f"مرشحات البحث: {filters or 'بحث عام'}")
+                    st.caption(f"مرشحات البحث: {message.get('filters') or 'بحث عام'}")
+
+if not st.session_state.chat_history:
+    st.info("اكتب سؤالك في مربع المحادثة أسفل الصفحة، مثل: ما نص المادة 1 من القانون المدني؟")
+
+question = st.chat_input("اكتب سؤالك عن القوانين هنا...")
+if question:
+    filters = query_filters(question)
+    with st.spinner("جاري البحث في المواد القانونية..."):
+        results = index.search(question, k=8)
+        if results:
+            answer = ask_llm(question, results)
+        else:
+            answer = "لم أجد نصًا مطابقًا في الملفات المضافة. جرّب ذكر رقم القانون أو رقم المادة أو استخدم كلمات أكثر تحديدًا."
+    st.session_state.chat_history.append({"role": "user", "content": question})
+    st.session_state.chat_history.append({"role": "assistant", "content": answer, "results": results, "filters": filters})
+    st.rerun()

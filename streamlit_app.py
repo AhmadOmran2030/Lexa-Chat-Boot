@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hmac
 import os
 import sys
 import urllib.error
@@ -61,6 +62,62 @@ button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); bor
 [data-testid="stChatInput"] { border-color:rgba(212,175,55,.45) !important; background:#2b190f !important; }
 [data-testid="stChatInput"] textarea { color:#fff7e6 !important; }
 </style>""", unsafe_allow_html=True)
+
+
+def _secret(name: str, default: str = "") -> str:
+    value = os.getenv(name)
+    if value:
+        return value
+    try:
+        return str(st.secrets.get(name, default))
+    except Exception:
+        return default
+
+
+def _users() -> list[dict]:
+    raw = _secret("USERS_JSON")
+    if raw:
+        try:
+            users = json.loads(raw)
+            if isinstance(users, list):
+                return users
+        except json.JSONDecodeError:
+            pass
+    admin_user = _secret("ADMIN_USERNAME")
+    admin_password = _secret("ADMIN_PASSWORD")
+    if admin_user and admin_password:
+        return [{"username": admin_user, "password": admin_password, "role": "admin"}]
+    return []
+
+
+def authenticate(username: str, password: str) -> dict | None:
+    for user in _users():
+        if hmac.compare_digest(str(user.get("username", "")), username) and hmac.compare_digest(str(user.get("password", "")), password):
+            return {"username": username, "role": user.get("role", "user")}
+    return None
+
+
+if "auth_user" not in st.session_state:
+    st.session_state.auth_user = None
+
+configured_users = _users()
+if configured_users and not st.session_state.auth_user:
+    st.markdown('<div class="hero"><div class="hero-kicker">LEXGO SECURE ACCESS</div><h1>تسجيل الدخول إلى المستشار القانوني</h1><p>سجّل الدخول للوصول إلى مكتبة القوانين. صلاحية إضافة الملفات متاحة للمدير فقط.</p></div>', unsafe_allow_html=True)
+    with st.form("login_form"):
+        username = st.text_input("اسم المستخدم")
+        password = st.text_input("كلمة المرور", type="password")
+        submitted = st.form_submit_button("دخول", type="primary", use_container_width=True)
+        if submitted:
+            user = authenticate(username.strip(), password)
+            if user:
+                st.session_state.auth_user = user
+                st.rerun()
+            else:
+                st.error("اسم المستخدم أو كلمة المرور غير صحيحة.")
+    st.stop()
+
+current_user = st.session_state.auth_user or {"username": "guest", "role": "user"}
+is_admin = current_user.get("role") == "admin"
 
 @st.cache_data(show_spinner=False)
 def load_corpus():
@@ -175,29 +232,38 @@ with st.sidebar:
             pass
     st.markdown(f'<div class="source-chip">● API: {api_provider + " متصل" if api_key_ready else "غير مضاف — سيعرض النصوص مباشرة"}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="source-chip">● التخزين: {"قاعدة بيانات دائمة" if storage_configured() else "محلي مؤقت"}</div>', unsafe_allow_html=True)
-    st.markdown("### إضافة قانون جديد")
-    st.caption("ارفع PDF أو DOC أو DOCX وسيتم تحليله إلى قوانين ومواد وفقرات وبنود.")
-    uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
-    if uploaded is not None:
-        target = DATA_DIR / uploaded.name
-        if not target.exists():
-            try:
-                target.write_bytes(uploaded.getbuffer())
-                with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
-                    law, law_rows = ingest_file(target, PARSED_DIR)
-                if storage_configured():
-                    with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
-                        save_document(law, law_rows)
-                invalidate()
-                st.success(f"تمت الفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
-                st.rerun()
-            except Exception as exc:
-                if target.exists():
-                    target.unlink()
-                st.error(f"فشل رفع أو قراءة الملف: {exc}")
-                st.info("تأكد أن الملف PDF يحتوي على نص أو أن ملف DOCX سليم، ثم أعد المحاولة.")
-        else:
-            st.info("هذا الملف موجود بالفعل ومفهرس. احذفه من مجلد data إذا أردت رفع نسخة جديدة بنفس الاسم.")
+    st.markdown(f'<div class="source-chip">● المستخدم: {current_user.get("username")}</div>', unsafe_allow_html=True)
+    if configured_users and st.button("تسجيل الخروج", use_container_width=True):
+        st.session_state.auth_user = None
+        st.rerun()
+    if is_admin:
+        st.markdown("### إضافة قانون جديد")
+        st.caption("ارفع PDF أو DOC أو DOCX وسيتم حفظه مباشرة في قاعدة البيانات.")
+        uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
+        if uploaded is not None:
+            target = DATA_DIR / uploaded.name
+            incoming = uploaded.getvalue()
+            same_file = target.exists() and target.read_bytes() == incoming
+            if not same_file:
+                try:
+                    target.write_bytes(incoming)
+                    with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
+                        law, law_rows = ingest_file(target, PARSED_DIR)
+                    if storage_configured():
+                        with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
+                            save_document(law, law_rows)
+                    invalidate()
+                    st.success(f"تم الحفظ والفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
+                    st.rerun()
+                except Exception as exc:
+                    if target.exists():
+                        target.unlink()
+                    st.error(f"فشل رفع أو قراءة الملف: {exc}")
+                    st.info("تأكد أن الملف PDF يحتوي على نص أو أن ملف Word سليم.")
+            else:
+                st.info("هذا الملف محفوظ بالفعل وجاهز للبحث.")
+    else:
+        st.info("وضع المستخدم: يمكنك استخدام الشات والبحث فقط. إضافة القوانين متاحة للمدير.")
     st.divider()
     st.markdown("### حالة المكتبة")
     st.metric("القوانين المفهرسة", len([x for x in laws if not x.get("error")]))

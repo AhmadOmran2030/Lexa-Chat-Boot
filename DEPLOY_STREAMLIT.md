@@ -50,9 +50,20 @@ Streamlit Cloud لا يحفظ مجلد `data/` بشكل دائم. استخدم S
 ```toml
 SUPABASE_URL = "https://your-project.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "ضع-كلمة-مرور-قوية"
+# أو عدة مستخدمين:
+# USERS_JSON = '[{"username":"admin","password":"...","role":"admin"},{"username":"reader","password":"...","role":"user"}]'
 ```
 
-بعد ذلك ستظهر حالة `التخزين: قاعدة بيانات دائمة`. أي ملف جديد ترفعه سيُحفظ في Supabase، وسيُعاد تحميله تلقائيًا بعد Reboot أو أي تحديث للكود.
+بعد ذلك ستظهر حالة `التخزين: قاعدة بيانات دائمة`. أي ملف جديد ترفعه الـAdmin سيُحفظ في Supabase، وسيُعاد تحميله تلقائيًا بعد Reboot أو أي تحديث للكود.
+
+## الصلاحيات
+
+- `role = "admin"`: يستطيع رفع وإضافة القوانين.
+- `role = "user"`: يستطيع استخدام الشات والبحث فقط، ولا يرى زر رفع الملفات.
+- إذا لم تضف إعدادات المستخدمين، يعمل التطبيق في وضع الضيف للتجربة؛ فعّل `ADMIN_USERNAME` و`ADMIN_PASSWORD` قبل النشر العام.
 
 لا تضع `SUPABASE_SERVICE_ROLE_KEY` في GitHub أو في كود الواجهة.
 

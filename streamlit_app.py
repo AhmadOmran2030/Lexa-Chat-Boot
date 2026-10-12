@@ -40,14 +40,14 @@ html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IB
 [data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,rgba(33,20,15,.72) 0%,rgba(47,29,20,.58) 100%); border-left: 1px solid rgba(212,175,55,.22); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 [data-testid="stSidebar"] .block-container { padding-top: 2rem; }
 .stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
-.main .block-container { max-width: 1180px; padding: 2.5rem 2rem 5rem; }
+.main .block-container { max-width: 980px; width:100%; margin:0 auto; padding: 2.5rem 1.5rem 5rem; }
 .brand-mark { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .brand-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#f4d06f,#a87519); color:#2b180b; font-size:24px; box-shadow:0 10px 28px rgba(212,175,55,.22); }
 .brand-name { font-family:'Cairo',sans-serif; font-size:1.45rem; font-weight:800; color:#f8fafc; letter-spacing:-.5px; }
 .brand-sub { color:#e6c56a; font-size:.78rem; margin:0 0 1.2rem 56px; }
-.hero { padding:2rem 2.2rem; border:1px solid rgba(255,222,135,.28); border-radius:24px; background:linear-gradient(135deg,rgba(111,72,38,.34),rgba(42,24,17,.30)); box-shadow:0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(18px) saturate(125%); -webkit-backdrop-filter:blur(18px) saturate(125%); margin-bottom:1.5rem; }
+.hero { max-width:900px; margin:0 auto 1.5rem; padding:1.65rem 2rem; border:1px solid rgba(255,222,135,.28); border-radius:22px; background:linear-gradient(135deg,rgba(111,72,38,.34),rgba(42,24,17,.30)); box-shadow:0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(18px) saturate(125%); -webkit-backdrop-filter:blur(18px) saturate(125%); }
 .hero-kicker { color:#e8c766; font-weight:700; font-size:.82rem; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:.5rem; }
-.hero h1 { color:#f8fafc; font-family:'Cairo',sans-serif; font-size:2.45rem; line-height:1.35; margin:0 0 .55rem; }
+.hero h1 { color:#f8fafc; font-family:'Cairo',sans-serif; font-size:2.1rem; line-height:1.35; margin:0 0 .55rem; }
 .hero p { color:#e8dcca; font-size:1.02rem; margin:0; max-width:720px; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 .metric-label { color:#cbb998; font-size:.8rem; }
@@ -62,6 +62,8 @@ button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); bor
 [data-testid="stChatInput"] { border:1px solid rgba(255,222,135,.42) !important; border-radius:18px !important; background:rgba(67,39,24,.34) !important; box-shadow:0 10px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 [data-testid="stChatInput"] textarea { color:#fff7e6 !important; }
 [data-testid="stExpander"], [data-testid="stForm"], [data-testid="stAlert"] { border:1px solid rgba(255,222,135,.20); border-radius:16px; background:rgba(72,42,25,.24); box-shadow:0 10px 26px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.07); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+[data-testid="stForm"] { max-width:700px; margin:1.2rem auto 0; padding:1.1rem 1.25rem .8rem; }
+[data-testid="stFormSubmitButton"] button { width:100%; border:1px solid rgba(255,231,151,.45) !important; border-radius:12px !important; background:linear-gradient(135deg,#e0bd52,#9b701d) !important; color:#24160d !important; box-shadow:0 8px 20px rgba(212,175,55,.18); }
 [data-testid="stTextInput"] input, [data-testid="stNumberInput"] input, [data-testid="stSelectbox"] div[data-baseweb="select"] > div { background:rgba(35,21,15,.34) !important; border-color:rgba(255,222,135,.28) !important; color:#fff7e6 !important; backdrop-filter:blur(10px); }
 </style>""", unsafe_allow_html=True)
 

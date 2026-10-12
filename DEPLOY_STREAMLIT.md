@@ -31,12 +31,14 @@ OPENAI_API_KEY = "sk-your-openai-key"
 OPENAI_MODEL = "gpt-4o-mini"
 ```
 
-لاستخدام Gemini، أضف `GEMINI_API_KEY` مع نموذج مثل `gemini-2.0-flash`. ضع المفتاح في خانة Secrets فقط. لا تضعه داخل `streamlit_app.py` ولا ترفعه إلى GitHub، ولا ترسله في المحادثة.
+لاستخدام Gemini، أضف `GEMINI_API_KEY` مع نموذج مثل `gemini-2.5-flash`. ضع المفتاح في خانة Secrets فقط. لا تضعه داخل `streamlit_app.py` ولا ترفعه إلى GitHub، ولا ترسله في المحادثة.
 
 ```toml
 GEMINI_API_KEY = "AIza..."
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 ```
+
+بعد تسجيل الدخول كـAdmin سيظهر زر `اختبار Gemini API`. استخدمه لمعرفة هل المشكلة من المفتاح أو من اسم النموذج أو من صلاحية الحساب، وستظهر تفاصيل رد Google إذا كان الطلب مرفوضًا.
 
 ## 4. تفعيل حفظ الملفات بعد التحديثات
 

@@ -10,9 +10,9 @@ MONTHS = {
     "سبتمبر": 9, "أكتوبر": 10, "اكتوبر": 10, "نوفمبر": 11, "ديسمبر": 12,
 }
 
-LAW_RE = re.compile(r"(?im)(?:القانون|مرسوم\s+بقانون|قرار)\s*(?:رقم)?\s*([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})")
+LAW_RE = re.compile(r"(?im)(?:القانون|قانون|مرسوم\s+بقانون|قرار)\s*(?:رقم)?\s*([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})")
 ARTICLE_RE = re.compile(r"(?im)^\s*(?:المادة|مادة)\s*[\(（]?\s*([٠-٩0-9]+(?:\s*[-/.]\s*[٠-٩0-9]+)?)\s*[\)）]?\s*(?:[-–—:]\s*(.*))?$")
-PARAGRAPH_RE = re.compile(r"^\s*(?:الفقرة\s*)?([٠-٩0-9]+)[)、.\-:]\s*(.*)$")
+PARAGRAPH_RE = re.compile(r"^\s*(?:الفقرة\s*)?[\(（]?([٠-٩0-9]+)[\)）)،.\-:]\s*(.*)$")
 CLAUSE_RE = re.compile(r"^\s*(?:\(([أ-ي])\)|([أ-ي])\s*[-–—.):])\s*(.*)$")
 DATE_RE = re.compile(r"(?P<day>[٠-٩0-9]{1,2})\s+(?P<month>[ء-ياأإآ]+)\s+(?P<year>[٠-٩0-9]{4})")
 
@@ -107,7 +107,8 @@ def parse_law(pages: list[dict[str, Any]], file_name: str) -> dict[str, Any]:
                     "title": (match.group(2) or "").strip(),
                     "page_start": page.get("page_number", page_index),
                     "page_end": page.get("page_number", page_index),
-                    "lines": [],
+                    # Text after the article number is legal text, not a display-only title.
+                    "lines": [match.group(2).strip()] if (match.group(2) or "").strip() else [],
                     "paragraphs": [],
                 }
             elif current is not None:

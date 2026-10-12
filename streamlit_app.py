@@ -147,6 +147,28 @@ def invalidate():
     build_index.clear()
 
 
+def call_gemini(prompt: str, system_prompt: str = "") -> str:
+    key = _secret("GEMINI_API_KEY")
+    model_name = _secret("GEMINI_MODEL", "gemini-2.5-flash")
+    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
+    payload = {
+        "systemInstruction": {"parts": [{"text": system_prompt}]} if system_prompt else None,
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0, "maxOutputTokens": 900},
+    }
+    payload = {k: v for k, v in payload.items() if v is not None}
+    request = urllib.request.Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        return f"تعذر اتصال Gemini (HTTP {exc.code}). راجع المفتاح واسم النموذج. التفاصيل: {detail[:800]}"
+    except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
+        return f"تعذر اتصال Gemini API: {exc}"
+
+
 def ask_llm(question: str, results: list[dict]) -> str:
     def secret(name: str, default=None):
         value = os.getenv(name)
@@ -169,16 +191,7 @@ def ask_llm(question: str, results: list[dict]) -> str:
     system_prompt = "أنت مساعد بحث قانوني. أجب بالعربية من المصادر فقط. لا تستنتج معلومة غير موجودة. اذكر الاستشهاد بالمادة والفقرة والبند والصفحة. إذا لم تكفِ المصادر قل ذلك بوضوح."
     user_prompt = f"السؤال: {question}\n\nالمصادر:\n{context}"
     if gemini_key:
-        model_name = secret("GEMINI_MODEL", "gemini-2.0-flash")
-        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(gemini_key, safe='')}"
-        payload = {"systemInstruction": {"parts": [{"text": system_prompt}]}, "contents": [{"role": "user", "parts": [{"text": user_prompt}]}], "generationConfig": {"temperature": 0, "maxOutputTokens": 900}}
-        request = urllib.request.Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
-        try:
-            with urllib.request.urlopen(request, timeout=60) as response:
-                data = json.loads(response.read().decode("utf-8"))
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        except (urllib.error.HTTPError, urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
-            return f"تعذر الاتصال بـ Gemini API: {exc}"
+        return call_gemini(user_prompt, system_prompt)
     if openai_key:
         model_name = secret("OPENAI_MODEL", "gpt-4o-mini")
         client = OpenAI(api_key=openai_key, timeout=60)
@@ -231,6 +244,13 @@ with st.sidebar:
         except Exception:
             pass
     st.markdown(f'<div class="source-chip">● API: {api_provider + " متصل" if api_key_ready else "غير مضاف — سيعرض النصوص مباشرة"}</div>', unsafe_allow_html=True)
+    if is_admin and api_provider == "Gemini" and st.button("اختبار Gemini API", use_container_width=True):
+        with st.spinner("جاري اختبار Gemini..."):
+            gemini_test = call_gemini("اكتب كلمة: متصل", "أجب بكلمة واحدة فقط.")
+        if gemini_test.strip() == "متصل":
+            st.success("Gemini API يعمل بنجاح.")
+        else:
+            st.error(gemini_test)
     st.markdown(f'<div class="source-chip">● التخزين: {"قاعدة بيانات دائمة" if storage_configured() else "محلي مؤقت"}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="source-chip">● المستخدم: {current_user.get("username")}</div>', unsafe_allow_html=True)
     if configured_users and st.button("تسجيل الخروج", use_container_width=True):
@@ -270,6 +290,18 @@ with st.sidebar:
     st.metric("المواد والمقاطع", len(rows))
     if st.button("تحديث الفهرس", use_container_width=True):
         invalidate()
+        st.rerun()
+    if is_admin and st.button("إعادة فهرسة كل القوانين", use_container_width=True):
+        with st.spinner("جاري إعادة تحليل وحفظ كل القوانين..."):
+            fresh_laws, fresh_rows = load_all(DATA_DIR, PARSED_DIR)
+            if storage_configured():
+                for fresh_law in fresh_laws:
+                    fresh_id = fresh_law.get("document_id")
+                    fresh_law_rows = [r for r in fresh_rows if r.get("document_id") == fresh_id]
+                    if fresh_law_rows:
+                        save_document(fresh_law, fresh_law_rows)
+        invalidate()
+        st.success("تمت إعادة فهرسة كل القوانين وحفظها.")
         st.rerun()
     if st.button("مسح المحادثة", use_container_width=True):
         st.session_state.chat_history = []

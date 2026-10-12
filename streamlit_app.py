@@ -381,9 +381,14 @@ with st.sidebar:
         st.rerun()
     if is_admin:
         st.markdown("### إضافة قانون جديد")
-        st.caption("ارفع PDF أو DOC أو DOCX وسيتم حفظه مباشرة في قاعدة البيانات.")
-        uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
-        if uploaded is not None:
+        if not storage_configured():
+            st.error("قاعدة البيانات الدائمة غير متصلة. تم إيقاف الرفع حتى لا يُحفظ القانون في تخزين مؤقت.")
+            st.caption("أضف SUPABASE_URL وSUPABASE_SERVICE_ROLE_KEY في Streamlit Secrets ثم أعد تشغيل التطبيق.")
+            uploaded = None
+        else:
+            st.caption("ارفع PDF أو DOC أو DOCX وسيتم تحليله وحفظه مباشرة في قاعدة البيانات.")
+            uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
+        if uploaded is not None and storage_configured():
             target = DATA_DIR / uploaded.name
             incoming = uploaded.getvalue()
             same_file = target.exists() and target.read_bytes() == incoming

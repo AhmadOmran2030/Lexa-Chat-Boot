@@ -19,7 +19,7 @@ def tokens(text: str) -> list[str]:
 
 def query_filters(query: str) -> dict[str, str | int]:
     result: dict[str, str | int] = {}
-    law = re.search(r"(?:القانون|مرسوم\s+بقانون|قرار)\s*(?:رقم)?\s*([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})", query)
+    law = re.search(r"(?:القانون|قانون|مرسوم\s+بقانون|قرار)\s*(?:رقم)?\s*([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})", query)
     article = re.search(r"(?:المادة|مادة)\s*([٠-٩0-9]+)", query)
     paragraph = re.search(r"(?:الفقرة|فقرة)\s*([٠-٩0-9]+)", query)
     if law:
@@ -40,7 +40,7 @@ class LegalIndex:
         self.model = SentenceTransformer(MODEL_NAME) if rows else None
         self.embeddings = self.model.encode(self.documents, normalize_embeddings=True, convert_to_numpy=True) if rows else np.empty((0, 384))
 
-    def search(self, query: str, k: int = 6) -> list[dict[str, Any]]:
+    def search(self, query: str, k: int = 6, threshold: float = 70.0) -> list[dict[str, Any]]:
         if not self.rows:
             return []
         filters = query_filters(query)
@@ -58,12 +58,28 @@ class LegalIndex:
             if len(a) == 0 or float(a.max()) == float(a.min()):
                 return np.ones_like(a) if len(a) else a
             return (a - a.min()) / (a.max() - a.min())
-        scores = .4 * norm(bm_values) + .6 * norm(de_values)
-        order = np.argsort(scores)[::-1][:k]
+        query_tokens = set(tokens(query))
+        filters = query_filters(query)
+        confidences = []
+        for idx, candidate in enumerate(candidates):
+            row_tokens = set(tokens(self.rows[candidate].get("text", "")))
+            lexical = (len(query_tokens & row_tokens) / max(1, len(query_tokens))) * 100
+            semantic = float(np.clip((de_values[idx] + 1.0) * 50.0, 0.0, 100.0))
+            metadata_bonus = 0.0
+            if filters.get("article_number") and str(self.rows[candidate].get("article_number")) == str(filters["article_number"]):
+                metadata_bonus += 15.0
+            if filters.get("law_number") and str(self.rows[candidate].get("law_number")) == str(filters["law_number"]):
+                metadata_bonus += 10.0
+            confidences.append(min(100.0, .65 * semantic + .25 * lexical + metadata_bonus))
+        confidences = np.array(confidences, dtype=float)
+        qualified = np.where(confidences >= threshold)[0]
+        if len(qualified) == 0:
+            return []
+        order = qualified[np.argsort(confidences[qualified])[::-1][:k]]
         output = []
         for pos in order:
             row = dict(self.rows[candidates[int(pos)]])
-            row["score"] = round(float(scores[pos]) * 100, 2)
-            row["semantic_score"] = round(float(de_values[pos]) * 100, 2)
+            row["score"] = round(float(confidences[pos]), 2)
+            row["semantic_score"] = round(float(np.clip((de_values[pos] + 1.0) * 50.0, 0.0, 100.0)), 2)
             output.append(row)
         return output

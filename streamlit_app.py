@@ -246,6 +246,43 @@ def ask_llm(question: str, results: list[dict]) -> str:
     )
     return response.choices[0].message.content or "لم يتم إنشاء إجابة."
 
+
+def is_legal_question(question: str) -> bool:
+    legal_terms = (
+        "قانون", "المادة", "مادة", "فقرة", "بند", "تشريع", "لائحة", "قرار", "مرسوم",
+        "محكمة", "دعوى", "حكم", "عقد", "التزام", "مسؤولية", "تعويض", "إدارة قانونية",
+        "القوانين", "الملفات القانونية", "نص المادة", "الجريدة الرسمية",
+    )
+    return bool(query_filters(question)) or any(term in question for term in legal_terms)
+
+
+def ask_general_llm(question: str) -> str:
+    system_prompt = "أنت مساعد عربي ودود داخل تطبيق قانوني. يمكنك الرد على التحية والشكر والأسئلة العامة باختصار ووضوح. لا تستخدم أي معلومة قانونية من خارج ملفات المستخدم؛ إذا كان السؤال قانونيًا فاطلب منه تحديد القانون أو المادة، وسيتم البحث في الملفات فقط. لا تدّع أنك محامٍ."
+    gemini_key = _secret("GEMINI_API_KEY")
+    openai_key = _secret("OPENAI_API_KEY")
+    openrouter_key = _secret("OPENROUTER_API_KEY")
+    if gemini_key:
+        return call_gemini(question, system_prompt)
+    if openai_key or openrouter_key:
+        if openai_key:
+            client = OpenAI(api_key=openai_key, timeout=60)
+            model_name = _secret("OPENAI_MODEL", "gpt-4o-mini")
+        else:
+            client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key, timeout=60)
+            model_name = _secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+        response = client.chat.completions.create(
+            model=model_name,
+            temperature=.3,
+            max_tokens=300,
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}],
+        )
+        return response.choices[0].message.content or "تفضل، كيف يمكنني مساعدتك؟"
+    if any(word in question for word in ("شكرا", "شكرًا", "مشكور")):
+        return "العفو، أنا هنا لمساعدتك."
+    if any(word in question for word in ("السلام", "مرحبا", "مرحبًا", "أهلا", "أهلًا")):
+        return "وعليكم السلام ورحمة الله وبركاته. أهلًا بك، كيف يمكنني مساعدتك؟"
+    return "أهلًا بك. أضف مفتاح Gemini أو OpenAI حتى أتمكن من الإجابة عن الأسئلة العامة. وللأسئلة القانونية اذكر اسم القانون ورقم المادة."
+
 laws, rows = load_corpus()
 index = build_index(json.dumps(rows, ensure_ascii=False, sort_keys=True))
 
@@ -380,6 +417,26 @@ def message_html(content: str, role: str) -> str:
     return f'<div class="chat-row {role}"><div class="chat-meta"><span class="chat-avatar">{avatar}</span><span>{label}</span></div><div class="chat-text">{body}</div></div>'
 
 
+def complete_article_result(question: str, results: list[dict]) -> list[dict]:
+    filters = query_filters(question)
+    if not results or not filters.get("article_number"):
+        return results[:1]
+    top = results[0]
+    article_rows = [
+        row for row in index.rows
+        if str(row.get("document_id")) == str(top.get("document_id"))
+        and str(row.get("article_number")) == str(filters["article_number"])
+    ]
+    article_rows.sort(key=lambda row: (int(row.get("paragraph_number") or 0), int(row.get("clause_number") or 0)))
+    if article_rows:
+        merged = dict(top)
+        merged["text"] = "\n".join(str(row.get("text", "")).strip() for row in article_rows if row.get("text"))
+        merged["paragraph_number"] = "كاملة"
+        merged["clause_number"] = "كاملة"
+        return [merged]
+    return results[:1]
+
+
 for message in st.session_state.chat_history:
     st.markdown(message_html(message["content"], message["role"]), unsafe_allow_html=True)
     if message["role"] == "assistant" and message.get("results"):
@@ -396,14 +453,20 @@ if not st.session_state.chat_history:
 question = st.chat_input("اكتب سؤالك عن القوانين هنا...")
 if question:
     filters = query_filters(question)
+    legal_query = is_legal_question(question)
     with st.spinner("جاري البحث في المواد القانونية..."):
-        results = index.search(question, k=8)
-        primary_results = results[:1]
-        if primary_results:
-            answer = ask_llm(question, primary_results)
+        if legal_query:
+            results = index.search(question, k=50, threshold=70.0)
+            primary_results = complete_article_result(question, results)
+            if primary_results:
+                answer = ask_llm(question, primary_results)
+            else:
+                answer = "لم أجد هذه المعلومة في الملفات القانونية المضافة. إذا كنت تقصد قانونًا أو مادة محددة، اذكر اسم القانون ورقم المادة لأبحث عنها بدقة."
         else:
-            answer = "لم أجد نصًا مطابقًا في الملفات المضافة. جرّب ذكر رقم القانون أو رقم المادة أو استخدم كلمات أكثر تحديدًا."
-        answer += "\n\n> **تنبيه مهني:** هذه إجابة إرشادية مبنية على الملفات المتاحة في النظام. إذا لم تحصل على إجابة كاملة، أو كان السؤال متعمقًا أو مرتبطًا بإجراء عملي، يُرجى الرجوع إلى **الشؤون القانونية** أو مستشار قانوني مختص."
+            primary_results = []
+            answer = ask_general_llm(question)
+        if legal_query:
+            answer += "\n\n> **تنبيه مهني:** هذه إجابة إرشادية مبنية على الملفات المتاحة في النظام. إذا لم تحصل على إجابة كاملة، أو كان السؤال متعمقًا أو مرتبطًا بإجراء عملي، يُرجى الرجوع إلى **الشؤون القانونية** أو مستشار قانوني مختص."
     st.session_state.chat_history.append({"role": "user", "content": question})
     st.session_state.chat_history.append({"role": "assistant", "content": answer, "results": primary_results, "filters": filters})
     st.rerun()

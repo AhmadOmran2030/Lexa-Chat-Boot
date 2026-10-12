@@ -63,23 +63,30 @@ def invalidate():
 
 
 def ask_llm(question: str, results: list[dict]) -> str:
-    key = os.getenv("OPENROUTER_API_KEY")
-    if not key:
+    def secret(name: str, default=None):
+        value = os.getenv(name)
+        if value:
+            return value
         try:
-            key = st.secrets.get("OPENROUTER_API_KEY")
+            return st.secrets.get(name, default)
         except Exception:
-            key = None
+            return default
+
+    openai_key = secret("OPENAI_API_KEY")
+    openrouter_key = secret("OPENROUTER_API_KEY")
+    key = openai_key or openrouter_key
     if not key:
         return "\n\n".join(f"**المادة {r.get('article_number')}**: {r.get('text')}" for r in results[:3])
     context = "\n\n".join(
         f"[مصدر {i}] القانون رقم {r.get('law_number')} لسنة {r.get('law_year')}، المادة {r.get('article_number')}، الفقرة {r.get('paragraph_number')}، البند {r.get('clause_number')}، الصفحة {r.get('page_start')}\n{r.get('text')}"
         for i, r in enumerate(results, 1)
     )
-    try:
-        model_name = st.secrets.get("OPENROUTER_MODEL", os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free"))
-    except Exception:
-        model_name = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
-    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=key, timeout=60)
+    if openai_key:
+        model_name = secret("OPENAI_MODEL", "gpt-4o-mini")
+        client = OpenAI(api_key=openai_key, timeout=60)
+    else:
+        model_name = secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key, timeout=60)
     response = client.chat.completions.create(
         model=model_name,
         temperature=0,
@@ -96,9 +103,30 @@ index = build_index(json.dumps(rows, ensure_ascii=False, sort_keys=True))
 
 with st.sidebar:
     st.markdown('<div class="brand-mark"><div class="brand-icon">⚖</div><div class="brand-name">LexGO</div></div><div class="brand-sub">منصة الذكاء القانوني العربي</div>', unsafe_allow_html=True)
+    api_provider = ""
+    api_key_ready = bool(os.getenv("OPENAI_API_KEY"))
+    if api_key_ready:
+        api_provider = "OpenAI"
+    if not api_key_ready:
+        try:
+            api_key_ready = bool(st.secrets.get("OPENAI_API_KEY"))
+            if api_key_ready:
+                api_provider = "OpenAI"
+        except Exception:
+            pass
+    if not api_key_ready:
+        api_key_ready = bool(os.getenv("OPENROUTER_API_KEY"))
+        api_provider = "OpenRouter" if api_key_ready else ""
+    if not api_key_ready:
+        try:
+            api_key_ready = bool(st.secrets.get("OPENROUTER_API_KEY"))
+            api_provider = "OpenRouter" if api_key_ready else ""
+        except Exception:
+            pass
+    st.markdown(f'<div class="source-chip">● API: {api_provider + " متصل" if api_key_ready else "غير مضاف — سيعرض النصوص مباشرة"}</div>', unsafe_allow_html=True)
     st.markdown("### إضافة قانون جديد")
     st.caption("ارفع PDF أو DOCX وسيتم تحليله إلى قوانين ومواد وفقرات وبنود.")
-    uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "docx"])
+    uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
     if uploaded is not None:
         target = DATA_DIR / uploaded.name
         if not target.exists():

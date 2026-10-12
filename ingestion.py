@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -39,13 +41,30 @@ def _docx_pages(path: Path) -> list[dict[str, Any]]:
     return [{"page_number": 1, "text": text, "extraction_method": "docx"}]
 
 
+def _doc_pages(path: Path) -> list[dict[str, Any]]:
+    """Convert legacy .doc to a temporary .docx, then use the normal parser."""
+    with tempfile.TemporaryDirectory(prefix="lexgo_doc_") as temp_dir:
+        result = subprocess.run(
+            ["libreoffice", "--headless", "--convert-to", "docx", "--outdir", temp_dir, str(path)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        converted = Path(temp_dir) / f"{path.stem}.docx"
+        if result.returncode != 0 or not converted.exists():
+            raise RuntimeError("تعذر تحويل ملف DOC القديم. تأكد من تثبيت LibreOffice.")
+        return _docx_pages(converted)
+
+
 def extract_pages(path: str | Path) -> list[dict[str, Any]]:
     path = Path(path)
     if path.suffix.lower() == ".pdf":
         return _pdf_pages(path)
     if path.suffix.lower() == ".docx":
         return _docx_pages(path)
-    raise ValueError("الامتدادات المدعومة هي PDF وDOCX فقط")
+    if path.suffix.lower() == ".doc":
+        return _doc_pages(path)
+    raise ValueError("الامتدادات المدعومة هي PDF وDOC وDOCX فقط")
 
 
 def ingest_file(path: str | Path, parsed_dir: str | Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -67,7 +86,7 @@ def load_all(data_dir: str | Path, parsed_dir: str | Path) -> tuple[list[dict[st
     laws, rows = [], []
     data_dir = Path(data_dir)
     for path in sorted(data_dir.iterdir() if data_dir.exists() else []):
-        if path.suffix.lower() not in {".pdf", ".docx"}:
+        if path.suffix.lower() not in {".pdf", ".doc", ".docx"}:
             continue
         try:
             law, law_rows = ingest_file(path, parsed_dir)

@@ -25,9 +25,13 @@
 من إعدادات التطبيق أضف:
 
 ```toml
-OPENROUTER_API_KEY = "your_key"
-OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct:free"
+OPENAI_API_KEY = "sk-your-openai-key"
+OPENAI_MODEL = "gpt-4o-mini"
 ```
+
+بما أن مفتاحك من OpenAI، استخدم `OPENAI_API_KEY` مع نموذج مثل `gpt-4o-mini`. ضع المفتاح في خانة Secrets فقط. لا تضعه داخل `streamlit_app.py` ولا ترفعه إلى GitHub، ولا ترسله في المحادثة.
+
+بعد الحفظ أعد تشغيل التطبيق. ستظهر في الشريط الجانبي حالة `OpenAI متصل`، وعندها سيولد الشات إجابات عربية من النصوص المسترجعة. إذا لم تضف المفتاح، سيظل البحث يعمل وسيعرض النصوص القانونية والمصادر بدون توليد إجابة.
 
 ## 4. ملاحظة مهمة عن الملفات
 

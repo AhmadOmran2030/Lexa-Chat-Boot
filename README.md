@@ -30,14 +30,16 @@ docker compose up -d --build
 
 للنشر على Streamlit Community Cloud راجع `DEPLOY_STREAMLIT.md`. أضفت `packages.txt` لتثبيت OCR العربي و`.streamlit/config.toml` لضبط الواجهة.
 
-ضع ملفات PDF أو DOCX في الواجهة، أو داخل `data/`. النتائج المنظمة تحفظ في `parsed_laws/`.
+ضع ملفات PDF أو DOC أو DOCX في الواجهة، أو داخل `data/`. النتائج المنظمة تحفظ في `parsed_laws/`.
 
-لإجابات مولدة من OpenRouter أضف:
+لإجابات مولدة من OpenAI أضف في Streamlit Secrets:
 
-```text
-OPENROUTER_API_KEY=...
-OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
+```toml
+OPENAI_API_KEY = "sk-..."
+OPENAI_MODEL = "gpt-4o-mini"
 ```
+
+يمكن استخدام OpenRouter كبديل اختياري عبر `OPENROUTER_API_KEY` و`OPENROUTER_MODEL`.
 
 إذا لم يوجد المفتاح، تعرض الواجهة النصوص القانونية المسترجعة مباشرة بدل توليد إجابة.
 

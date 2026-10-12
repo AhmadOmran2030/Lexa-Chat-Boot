@@ -1,0 +1,7 @@
+.env
+.streamlit/secrets.toml
+__pycache__/
+data/*
+!data/القانونالمدني.docx
+parsed_laws/*
+!parsed_laws/doc_5e86c75ec8a2d19e.json

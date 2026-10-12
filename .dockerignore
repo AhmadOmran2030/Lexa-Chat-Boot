@@ -1,0 +1,7 @@
+.git
+__pycache__
+*.pyc
+.env
+data/*
+parsed_laws/*
+chroma_db

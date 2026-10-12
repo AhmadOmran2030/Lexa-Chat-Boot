@@ -1,0 +1,16 @@
+services:
+  lexgo:
+    build: .
+    container_name: lexgo-legal
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./parsed_laws:/app/parsed_laws
+      - huggingface_cache:/root/.cache/huggingface
+
+volumes:
+  huggingface_cache:

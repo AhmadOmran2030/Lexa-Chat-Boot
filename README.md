@@ -1,18 +1,48 @@
-# LexGo RAG v2
+# LexGO — Arabic Legal Intelligence
 
-Clean, independent, document-first RAG scaffold. No old English sample corpus is included.
+نسخة مطورة من LexGO لتحويل ملفات القوانين PDF/DOCX إلى بيانات قابلة للبحث والاستشهاد.
 
-## Windows setup
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-Copy-Item .env.example .env
-streamlit run app.py
+## الميزات
+
+- استخراج النص صفحة بصفحة مع رقم الصفحة.
+- استخراج رقم القانون وسنته والعنوان وتواريخ النشر والسريان والانتهاء عند وجودها.
+- اكتشاف المواد والفقرات والبنود وحفظها في JSON منظم.
+- بحث هجين BM25 + embeddings متعدد اللغات يدعم العربية.
+- تحليل سؤال المستخدم لاستخراج رقم القانون والسنة ورقم المادة والفقرة.
+- استشهاد يوضح القانون والمادة والفقرة والبند والصفحة.
+- شاشة تحذير إذا كانت نتيجة الاستخراج تحتاج مراجعة.
+
+## التشغيل
+
+```bash
+python -m pip install -r requirements.txt
+streamlit run streamlit_app.py
 ```
 
-This is a scaffold, not yet a complete working RAG system. The TODO services must be implemented and tested before using it for real answers. Never commit `.env`, uploaded documents, or local vector database files.
+للتشغيل كموقع محلي دائم باستخدام Docker:
 
-## Intended flow
-Upload → text extraction/OCR → document classification and metadata extraction → structure-aware chunking → embeddings/indexing → hybrid retrieval → answer with source citations.
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+راجع `DEPLOY_LOCAL.md` للتشغيل على جهاز أو VPS، مع حفظ دائم لمجلدي `data/` و`parsed_laws/`.
+
+للنشر على Streamlit Community Cloud راجع `DEPLOY_STREAMLIT.md`. أضفت `packages.txt` لتثبيت OCR العربي و`.streamlit/config.toml` لضبط الواجهة.
+
+ضع ملفات PDF أو DOCX في الواجهة، أو داخل `data/`. النتائج المنظمة تحفظ في `parsed_laws/`.
+
+لإجابات مولدة من OpenRouter أضف:
+
+```text
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
+```
+
+إذا لم يوجد المفتاح، تعرض الواجهة النصوص القانونية المسترجعة مباشرة بدل توليد إجابة.
+
+## ملاحظات مهمة
+
+- الملفات المصورة بالكامل تحتاج إضافة OCR قبل الفهرسة. يترك النظام الصفحات التي لا تحتوي على طبقة نص بعلامة `empty` حتى لا تعتبر ناجحة بصمت.
+- إذا لم يكن للقانون ترقيم صريح للفقرات أو البنود، قد يستخدم النظام أرقامًا داخلية للترتيب، ويجب عدم اعتبارها أرقامًا رسمية.
+- يجب مراجعة الحقول المستخرجة قبل الاعتماد القانوني، خصوصًا تواريخ السريان والإلغاء.

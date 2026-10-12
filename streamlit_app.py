@@ -1,0 +1,166 @@
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+import streamlit as st
+from dotenv import load_dotenv
+from openai import OpenAI
+
+from ingestion import ingest_file, load_all
+from rag_engine import LegalIndex, query_filters
+
+load_dotenv()
+BASE = Path(__file__).resolve().parent
+DATA_DIR = BASE / "data"
+PARSED_DIR = BASE / "parsed_laws"
+DATA_DIR.mkdir(exist_ok=True)
+PARSED_DIR.mkdir(exist_ok=True)
+
+st.set_page_config(page_title="LexGO | المستشار القانوني", page_icon="⚖️", layout="wide")
+st.markdown("""<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', 'Cairo', sans-serif; }
+[data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,#21140f 0%,#2f1d14 100%); border-left: 1px solid rgba(212,175,55,.18); }
+[data-testid="stSidebar"] .block-container { padding-top: 2rem; }
+.stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
+.main .block-container { max-width: 1180px; padding: 2.5rem 2rem 5rem; }
+.brand-mark { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+.brand-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#f4d06f,#a87519); color:#2b180b; font-size:24px; box-shadow:0 10px 28px rgba(212,175,55,.22); }
+.brand-name { font-family:'Cairo',sans-serif; font-size:1.45rem; font-weight:800; color:#f8fafc; letter-spacing:-.5px; }
+.brand-sub { color:#e6c56a; font-size:.78rem; margin:0 0 1.2rem 56px; }
+.hero { padding:2rem 2.2rem; border:1px solid rgba(212,175,55,.24); border-radius:24px; background:linear-gradient(135deg,rgba(75,43,24,.94),rgba(34,20,14,.94)); box-shadow:0 18px 50px rgba(0,0,0,.28); margin-bottom:1.5rem; }
+.hero-kicker { color:#e8c766; font-weight:700; font-size:.82rem; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:.5rem; }
+.hero h1 { color:#f8fafc; font-family:'Cairo',sans-serif; font-size:2.45rem; line-height:1.35; margin:0 0 .55rem; }
+.hero p { color:#e8dcca; font-size:1.02rem; margin:0; max-width:720px; }
+.metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(212,175,55,.16); background:rgba(55,31,19,.78); }
+.metric-label { color:#cbb998; font-size:.8rem; }
+.metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; }
+.law-card { padding:1.1rem 1.25rem; border:1px solid rgba(212,175,55,.18); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(66,37,21,.86),rgba(34,20,14,.92)); }
+.source-chip { display:inline-block; padding:.3rem .65rem; margin:.15rem; border-radius:999px; background:rgba(212,175,55,.12); color:#f2d47c; font-size:.76rem; border:1px solid rgba(212,175,55,.22); }
+.section-title { color:#e2e8f0; font-family:'Cairo',sans-serif; font-size:1.25rem; font-weight:700; margin:.7rem 0 1rem; }
+div[data-testid="stFileUploader"] { border:1px dashed rgba(212,175,55,.5); border-radius:16px; padding:.4rem; background:rgba(91,49,22,.24); }
+button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); border:0; color:#21140d; }
+[data-testid="stChatMessage"] { border:1px solid rgba(212,175,55,.12); border-radius:18px; background:rgba(53,29,17,.55); margin-bottom:1rem; }
+[data-testid="stChatMessage"] p { line-height:2; }
+[data-testid="stChatInput"] { border-color:rgba(212,175,55,.45) !important; background:#2b190f !important; }
+[data-testid="stChatInput"] textarea { color:#fff7e6 !important; }
+</style>""", unsafe_allow_html=True)
+
+@st.cache_data(show_spinner=False)
+def load_corpus():
+    return load_all(DATA_DIR, PARSED_DIR)
+
+@st.cache_resource(show_spinner="جاري تحميل نموذج البحث العربي وبناء الفهرس...")
+def build_index(rows_json: str):
+    return LegalIndex(json.loads(rows_json))
+
+
+def invalidate():
+    load_corpus.clear()
+    build_index.clear()
+
+
+def ask_llm(question: str, results: list[dict]) -> str:
+    key = os.getenv("OPENROUTER_API_KEY")
+    if not key:
+        try:
+            key = st.secrets.get("OPENROUTER_API_KEY")
+        except Exception:
+            key = None
+    if not key:
+        return "\n\n".join(f"**المادة {r.get('article_number')}**: {r.get('text')}" for r in results[:3])
+    context = "\n\n".join(
+        f"[مصدر {i}] القانون رقم {r.get('law_number')} لسنة {r.get('law_year')}، المادة {r.get('article_number')}، الفقرة {r.get('paragraph_number')}، البند {r.get('clause_number')}، الصفحة {r.get('page_start')}\n{r.get('text')}"
+        for i, r in enumerate(results, 1)
+    )
+    try:
+        model_name = st.secrets.get("OPENROUTER_MODEL", os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free"))
+    except Exception:
+        model_name = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=key, timeout=60)
+    response = client.chat.completions.create(
+        model=model_name,
+        temperature=0,
+        max_tokens=900,
+        messages=[
+            {"role": "system", "content": "أنت مساعد بحث قانوني. أجب بالعربية من المصادر فقط. لا تستنتج معلومة غير موجودة. اذكر الاستشهاد بالمادة والفقرة والبند والصفحة. إذا لم تكفِ المصادر قل ذلك بوضوح."},
+            {"role": "user", "content": f"السؤال: {question}\n\nالمصادر:\n{context}"},
+        ],
+    )
+    return response.choices[0].message.content or "لم يتم إنشاء إجابة."
+
+laws, rows = load_corpus()
+index = build_index(json.dumps(rows, ensure_ascii=False, sort_keys=True))
+
+with st.sidebar:
+    st.markdown('<div class="brand-mark"><div class="brand-icon">⚖</div><div class="brand-name">LexGO</div></div><div class="brand-sub">منصة الذكاء القانوني العربي</div>', unsafe_allow_html=True)
+    st.markdown("### إضافة قانون جديد")
+    st.caption("ارفع PDF أو DOCX وسيتم تحليله إلى قوانين ومواد وفقرات وبنود.")
+    uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "docx"])
+    if uploaded is not None:
+        target = DATA_DIR / uploaded.name
+        if not target.exists():
+            try:
+                target.write_bytes(uploaded.getbuffer())
+                with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
+                    law, law_rows = ingest_file(target, PARSED_DIR)
+                invalidate()
+                st.success(f"تمت الفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
+                st.rerun()
+            except Exception as exc:
+                if target.exists():
+                    target.unlink()
+                st.error(f"فشل رفع أو قراءة الملف: {exc}")
+                st.info("تأكد أن الملف PDF يحتوي على نص أو أن ملف DOCX سليم، ثم أعد المحاولة.")
+        else:
+            st.info("هذا الملف موجود بالفعل ومفهرس. احذفه من مجلد data إذا أردت رفع نسخة جديدة بنفس الاسم.")
+    st.divider()
+    st.markdown("### حالة المكتبة")
+    st.metric("القوانين المفهرسة", len([x for x in laws if not x.get("error")]))
+    st.metric("المواد والمقاطع", len(rows))
+    if st.button("تحديث الفهرس", use_container_width=True):
+        invalidate()
+        st.rerun()
+
+st.markdown('<section class="hero"><div class="hero-kicker">LEXGO LEGAL ASSISTANT</div><h1>مستشارك القانوني الذكي</h1><p>تحدث مع مكتبتك القانونية بالعربية. ارفع القوانين، اسأل عن أي مادة، واحصل على إجابة موثقة بالمصدر والصفحة.</p></section>', unsafe_allow_html=True)
+
+stat1, stat2, stat3 = st.columns(3)
+stat1.markdown(f'<div class="metric-card"><div class="metric-label">القوانين المتاحة</div><div class="metric-value">{len([x for x in laws if not x.get("error")] )}</div></div>', unsafe_allow_html=True)
+stat2.markdown(f'<div class="metric-card"><div class="metric-label">المقاطع المفهرسة</div><div class="metric-value">{len(rows)}</div></div>', unsafe_allow_html=True)
+stat3.markdown('<div class="metric-card"><div class="metric-label">نوع البحث</div><div class="metric-value">هجين عربي</div></div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">ابدأ محادثتك القانونية</div>', unsafe_allow_html=True)
+
+if not laws:
+    st.info("ارفع أول ملف PDF أو DOCX من القائمة الجانبية للبدء.")
+    st.stop()
+
+with st.expander("عرض القوانين المفهرسة", expanded=False):
+    for law in laws:
+        if law.get("error"):
+            st.error(f"{law.get('file_name')}: {law.get('error')}")
+            continue
+        st.markdown(f'<div class="law-card"><strong>{law.get("title")}</strong><br><span class="source-chip">القانون {law.get("law_number") or "غير مستخرج"}</span><span class="source-chip">سنة {law.get("law_year") or "غير مستخرجة"}</span><span class="source-chip">{law.get("article_count", 0)} مادة</span></div>', unsafe_allow_html=True)
+        if law.get("extraction", {}).get("needs_review"):
+            st.warning("يحتاج هذا القانون إلى مراجعة الحقول المستخرجة.")
+
+question = st.chat_input("مثال: ما نص المادة 7 من القانون رقم 12 لسنة 2020؟")
+if question:
+    st.chat_message("user").write(question)
+    filters = query_filters(question)
+    with st.chat_message("assistant"):
+        with st.spinner("جاري البحث..."):
+            results = index.search(question, k=8)
+            if not results:
+                st.warning("لم يتم العثور على نص مطابق.")
+                st.stop()
+            st.markdown('<div class="section-title">الإجابة القانونية</div>', unsafe_allow_html=True)
+            st.markdown(ask_llm(question, results))
+            st.divider()
+            st.markdown('<div class="section-title">المصادر والتحقق</div>', unsafe_allow_html=True)
+            for i, result in enumerate(results, 1):
+                citation = f"القانون {result.get('law_number') or '؟'} لسنة {result.get('law_year') or '؟'} — المادة {result.get('article_number') or '؟'} — الفقرة {result.get('paragraph_number') or '؟'} — البند {result.get('clause_number') or '؟'} — صـ {result.get('page_start') or '؟'}"
+                with st.expander(f"المصدر {i}  ·  تطابق {result.get('score')}%  ·  المادة {result.get('article_number') or '؟'}"):
+                    st.markdown(f'<div class="law-card"><div class="source-chip">{citation}</div><p style="color:#e2e8f0;line-height:2;margin-top:12px">{result.get("text")}</p></div>', unsafe_allow_html=True)
+                    st.caption(f"مرشحات البحث: {filters or 'بحث عام'}")

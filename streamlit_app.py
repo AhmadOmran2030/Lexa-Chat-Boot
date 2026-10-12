@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import streamlit as st
@@ -19,6 +22,7 @@ except Exception:
     pass
 
 from ingestion import ingest_file, load_all
+from persistence import configured as storage_configured, load_rows as load_remote_rows, save_document, summarize_laws
 from rag_engine import LegalIndex, query_filters
 
 load_dotenv()
@@ -60,7 +64,21 @@ button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); bor
 
 @st.cache_data(show_spinner=False)
 def load_corpus():
-    return load_all(DATA_DIR, PARSED_DIR)
+    local_laws, local_rows = load_all(DATA_DIR, PARSED_DIR)
+    if storage_configured():
+        try:
+            remote_rows = load_remote_rows()
+            if remote_rows:
+                return summarize_laws(remote_rows), remote_rows
+            for law in local_laws:
+                document_id = law.get("document_id")
+                if document_id and not law.get("error"):
+                    law_rows = [row for row in local_rows if row.get("document_id") == document_id]
+                    if law_rows:
+                        save_document(law, law_rows)
+        except Exception:
+            pass
+    return local_laws, local_rows
 
 @st.cache_resource(show_spinner="جاري تحميل نموذج البحث العربي وبناء الفهرس...")
 def build_index(rows_json: str):
@@ -82,15 +100,28 @@ def ask_llm(question: str, results: list[dict]) -> str:
         except Exception:
             return default
 
+    gemini_key = secret("GEMINI_API_KEY")
     openai_key = secret("OPENAI_API_KEY")
     openrouter_key = secret("OPENROUTER_API_KEY")
-    key = openai_key or openrouter_key
-    if not key:
+    if not (gemini_key or openai_key or openrouter_key):
         return "\n\n".join(f"**المادة {r.get('article_number')}**: {r.get('text')}" for r in results[:3])
     context = "\n\n".join(
         f"[مصدر {i}] القانون رقم {r.get('law_number')} لسنة {r.get('law_year')}، المادة {r.get('article_number')}، الفقرة {r.get('paragraph_number')}، البند {r.get('clause_number')}، الصفحة {r.get('page_start')}\n{r.get('text')}"
         for i, r in enumerate(results, 1)
     )
+    system_prompt = "أنت مساعد بحث قانوني. أجب بالعربية من المصادر فقط. لا تستنتج معلومة غير موجودة. اذكر الاستشهاد بالمادة والفقرة والبند والصفحة. إذا لم تكفِ المصادر قل ذلك بوضوح."
+    user_prompt = f"السؤال: {question}\n\nالمصادر:\n{context}"
+    if gemini_key:
+        model_name = secret("GEMINI_MODEL", "gemini-2.0-flash")
+        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(gemini_key, safe='')}"
+        payload = {"systemInstruction": {"parts": [{"text": system_prompt}]}, "contents": [{"role": "user", "parts": [{"text": user_prompt}]}], "generationConfig": {"temperature": 0, "maxOutputTokens": 900}}
+        request = urllib.request.Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                data = json.loads(response.read().decode("utf-8"))
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        except (urllib.error.HTTPError, urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
+            return f"تعذر الاتصال بـ Gemini API: {exc}"
     if openai_key:
         model_name = secret("OPENAI_MODEL", "gpt-4o-mini")
         client = OpenAI(api_key=openai_key, timeout=60)
@@ -102,8 +133,8 @@ def ask_llm(question: str, results: list[dict]) -> str:
         temperature=0,
         max_tokens=900,
         messages=[
-            {"role": "system", "content": "أنت مساعد بحث قانوني. أجب بالعربية من المصادر فقط. لا تستنتج معلومة غير موجودة. اذكر الاستشهاد بالمادة والفقرة والبند والصفحة. إذا لم تكفِ المصادر قل ذلك بوضوح."},
-            {"role": "user", "content": f"السؤال: {question}\n\nالمصادر:\n{context}"},
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ],
     )
     return response.choices[0].message.content or "لم يتم إنشاء إجابة."
@@ -114,14 +145,23 @@ index = build_index(json.dumps(rows, ensure_ascii=False, sort_keys=True))
 with st.sidebar:
     st.markdown('<div class="brand-mark"><div class="brand-icon">⚖</div><div class="brand-name">LexGO</div></div><div class="brand-sub">منصة الذكاء القانوني العربي</div>', unsafe_allow_html=True)
     api_provider = ""
-    api_key_ready = bool(os.getenv("OPENAI_API_KEY"))
+    api_key_ready = bool(os.getenv("GEMINI_API_KEY"))
     if api_key_ready:
-        api_provider = "OpenAI"
+        api_provider = "Gemini"
+    if not api_key_ready:
+        try:
+            api_key_ready = bool(st.secrets.get("GEMINI_API_KEY"))
+            if api_key_ready:
+                api_provider = "Gemini"
+        except Exception:
+            pass
+    if not api_key_ready:
+        api_key_ready = bool(os.getenv("OPENAI_API_KEY"))
+        api_provider = "OpenAI" if api_key_ready else ""
     if not api_key_ready:
         try:
             api_key_ready = bool(st.secrets.get("OPENAI_API_KEY"))
-            if api_key_ready:
-                api_provider = "OpenAI"
+            api_provider = "OpenAI" if api_key_ready else ""
         except Exception:
             pass
     if not api_key_ready:
@@ -134,8 +174,9 @@ with st.sidebar:
         except Exception:
             pass
     st.markdown(f'<div class="source-chip">● API: {api_provider + " متصل" if api_key_ready else "غير مضاف — سيعرض النصوص مباشرة"}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="source-chip">● التخزين: {"قاعدة بيانات دائمة" if storage_configured() else "محلي مؤقت"}</div>', unsafe_allow_html=True)
     st.markdown("### إضافة قانون جديد")
-    st.caption("ارفع PDF أو DOCX وسيتم تحليله إلى قوانين ومواد وفقرات وبنود.")
+    st.caption("ارفع PDF أو DOC أو DOCX وسيتم تحليله إلى قوانين ومواد وفقرات وبنود.")
     uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
     if uploaded is not None:
         target = DATA_DIR / uploaded.name
@@ -144,6 +185,9 @@ with st.sidebar:
                 target.write_bytes(uploaded.getbuffer())
                 with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
                     law, law_rows = ingest_file(target, PARSED_DIR)
+                if storage_configured():
+                    with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
+                        save_document(law, law_rows)
                 invalidate()
                 st.success(f"تمت الفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
                 st.rerun()

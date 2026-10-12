@@ -11,6 +11,8 @@
 - `legal_parser.py`
 - `ingestion.py`
 - `rag_engine.py`
+- `persistence.py`
+- `supabase_schema.sql`
 
 ## 2. أنشئ التطبيق
 
@@ -29,9 +31,34 @@ OPENAI_API_KEY = "sk-your-openai-key"
 OPENAI_MODEL = "gpt-4o-mini"
 ```
 
-بما أن مفتاحك من OpenAI، استخدم `OPENAI_API_KEY` مع نموذج مثل `gpt-4o-mini`. ضع المفتاح في خانة Secrets فقط. لا تضعه داخل `streamlit_app.py` ولا ترفعه إلى GitHub، ولا ترسله في المحادثة.
+لاستخدام Gemini، أضف `GEMINI_API_KEY` مع نموذج مثل `gemini-2.0-flash`. ضع المفتاح في خانة Secrets فقط. لا تضعه داخل `streamlit_app.py` ولا ترفعه إلى GitHub، ولا ترسله في المحادثة.
 
-بعد الحفظ أعد تشغيل التطبيق. ستظهر في الشريط الجانبي حالة `OpenAI متصل`، وعندها سيولد الشات إجابات عربية من النصوص المسترجعة. إذا لم تضف المفتاح، سيظل البحث يعمل وسيعرض النصوص القانونية والمصادر بدون توليد إجابة.
+```toml
+GEMINI_API_KEY = "AIza..."
+GEMINI_MODEL = "gemini-2.0-flash"
+```
+
+## 4. تفعيل حفظ الملفات بعد التحديثات
+
+Streamlit Cloud لا يحفظ مجلد `data/` بشكل دائم. استخدم Supabase:
+
+1. أنشئ مشروعًا في Supabase.
+2. افتح SQL Editor والصق محتوى `supabase_schema.sql` ثم نفّذه.
+3. من Project Settings > API انسخ Project URL وService Role Key.
+4. أضفهما إلى Streamlit Secrets:
+
+```toml
+SUPABASE_URL = "https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+```
+
+بعد ذلك ستظهر حالة `التخزين: قاعدة بيانات دائمة`. أي ملف جديد ترفعه سيُحفظ في Supabase، وسيُعاد تحميله تلقائيًا بعد Reboot أو أي تحديث للكود.
+
+لا تضع `SUPABASE_SERVICE_ROLE_KEY` في GitHub أو في كود الواجهة.
+
+يدعم التطبيق أيضًا `OPENAI_API_KEY` و`OPENROUTER_API_KEY` كبدائل، لكن إذا وُجد مفتاح Gemini فسيستخدمه أولًا.
+
+بعد الحفظ أعد تشغيل التطبيق. ستظهر في الشريط الجانبي حالة `Gemini متصل` وحالة `التخزين: قاعدة بيانات دائمة`. إذا لم تضف مفتاح Gemini، سيظل البحث يعمل وسيعرض النصوص القانونية والمصادر بدون توليد إجابة.
 
 ## 4. ملاحظة مهمة عن الملفات
 

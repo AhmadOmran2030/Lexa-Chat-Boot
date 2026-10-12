@@ -40,7 +40,18 @@ st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', sans-serif; }
 [data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,rgba(33,20,15,.72) 0%,rgba(47,29,20,.58) 100%); border-left: 1px solid rgba(212,175,55,.22); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
-[data-testid="stSidebar"] .block-container { padding-top: 2rem; }
+section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width: min(350px, 88vw) !important; }
+[data-testid="stSidebar"] .block-container { padding-top: 2rem; padding-right:1.15rem; padding-left:1.15rem; direction:rtl; text-align:right; }
+[data-testid="stSidebar"] .block-container, [data-testid="stSidebar"] .block-container * { direction:rtl; text-align:right; }
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { text-align:right; }
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p, [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1, [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h2, [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 { text-align:right; }
+[data-testid="stSidebar"] button { justify-content:flex-start; text-align:right !important; direction:rtl; }
+[data-testid="stSidebar"] button div, [data-testid="stSidebar"] button p { text-align:right !important; width:100%; }
+[data-testid="stSidebar"] input, [data-testid="stSidebar"] textarea { direction:rtl; text-align:right !important; }
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] { direction:rtl; text-align:right; }
+[data-testid="stSidebar"] [data-testid="stFileUploaderDropzone"] > div { justify-content:flex-start; text-align:right; }
+[data-testid="stSidebar"] [data-testid="stMetric"] { direction:rtl; text-align:right; }
+[data-testid="stSidebar"] [data-testid="stMetricLabel"], [data-testid="stSidebar"] [data-testid="stMetricValue"] { text-align:right; }
 .stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
 .main .block-container { max-width: 980px; width:100%; margin:0 auto; padding: 2.5rem 1.5rem 5rem; }
 .brand-mark { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
@@ -62,10 +73,10 @@ html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IB
 .cover-line { position:relative; z-index:1; width:80px; height:2px; margin:1rem auto .7rem; background:linear-gradient(90deg,transparent,#e8c766,transparent); }
 .legal-cover span { position:relative; z-index:1; color:#cdb995; font-size:.78rem; }
 .admin-panel-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; text-align:center; margin:.4rem 0 .7rem; }
-.metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
-.metric-label { color:#cbb998; font-size:.8rem; }
-.metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; }
-.law-card { padding:1.1rem 1.25rem; border:1px solid rgba(255,222,135,.22); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(101,61,32,.30),rgba(35,21,15,.28)); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); }
+.metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
+.metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
+.metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }
+.law-card { padding:1.1rem 1.25rem; border:1px solid rgba(255,222,135,.22); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(101,61,32,.30),rgba(35,21,15,.28)); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); text-align:center; }
 .source-chip { display:inline-block; padding:.3rem .65rem; margin:.15rem; border-radius:999px; background:rgba(212,175,55,.12); color:#f2d47c; font-size:.76rem; border:1px solid rgba(212,175,55,.22); }
 .section-title { color:#e2e8f0; font-family:'Noto Kufi Arabic',sans-serif; font-size:1.12rem; font-weight:700; margin:.7rem 0 1rem; }
 div[data-testid="stFileUploader"] { border:1px dashed rgba(255,222,135,.55); border-radius:16px; padding:.4rem; background:rgba(91,49,22,.20); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }

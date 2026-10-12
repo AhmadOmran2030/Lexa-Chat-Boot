@@ -437,6 +437,15 @@ def complete_article_result(question: str, results: list[dict]) -> list[dict]:
     return results[:1]
 
 
+def verified_search(question: str) -> list[dict]:
+    try:
+        return index.search(question, k=50, threshold=70.0)
+    except TypeError:
+        # Backward compatibility when Streamlit Cloud still has the old rag_engine.py.
+        legacy_results = index.search(question, k=50)
+        return [row for row in legacy_results if float(row.get("score", 0) or 0) >= 70.0]
+
+
 for message in st.session_state.chat_history:
     st.markdown(message_html(message["content"], message["role"]), unsafe_allow_html=True)
     if message["role"] == "assistant" and message.get("results"):
@@ -456,7 +465,7 @@ if question:
     legal_query = is_legal_question(question)
     with st.spinner("جاري البحث في المواد القانونية..."):
         if legal_query:
-            results = index.search(question, k=50, threshold=70.0)
+            results = verified_search(question)
             primary_results = complete_article_result(question, results)
             if primary_results:
                 answer = ask_llm(question, primary_results)

@@ -31,11 +31,11 @@ OPENAI_API_KEY = "sk-your-openai-key"
 OPENAI_MODEL = "gpt-4o-mini"
 ```
 
-لاستخدام Gemini، أضف `GEMINI_API_KEY` مع نموذج `gemini-2.5-flash`، وهو ظاهر ضمن النماذج المتاحة لمفتاحك. نموذج `gemini-2.0-flash` لم يعد متاحًا. ضع المفتاح في خانة Secrets فقط. لا تضعه داخل `streamlit_app.py` ولا ترفعه إلى GitHub، ولا ترسله في المحادثة.
+لاستخدام Gemini، أضف `GEMINI_API_KEY` مع نموذج `gemini-3-flash-preview`، وهو النموذج الظاهر في قائمة النماذج المتاح لمفتاح المستخدم الجديد. نماذج `gemini-2.0-flash` و`gemini-2.5-flash` قد تظهر في القائمة لكنها غير متاحة للمستخدمين الجدد. ضع المفتاح في خانة Secrets فقط.
 
 ```toml
 GEMINI_API_KEY = "AIza..."
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3-flash-preview"
 ```
 
 بعد تسجيل الدخول كـAdmin سيظهر زر `اختبار Gemini API`. استخدمه لمعرفة هل المشكلة من المفتاح أو من اسم النموذج أو من صلاحية الحساب، وستظهر تفاصيل رد Google إذا كان الطلب مرفوضًا.
@@ -43,7 +43,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 اكتب اسم النموذج بدون `models/` وبدون `:latest`، مثل:
 
 ```toml
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3-flash-preview"
 ```
 
 إذا ظهر 404 بعد تحديث التطبيق، استخدم زر الاختبار؛ سيعرض التطبيق أسماء نماذج Gemini المتاحة لمفتاحك.

@@ -171,11 +171,11 @@ def invalidate():
 
 def call_gemini(prompt: str, system_prompt: str = "") -> str:
     key = _secret("GEMINI_API_KEY")
-    model_name = _secret("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    model_name = _secret("GEMINI_MODEL", "gemini-3-flash-preview").strip()
     if model_name.startswith("models/"):
         model_name = model_name[7:]
     model_name = model_name.split(":", 1)[0]
-    model_name = {"gemini-2.0-flash": "gemini-2.5-flash", "gemini-3.8-flash": "gemini-2.5-flash"}.get(model_name, model_name)
+    model_name = {"gemini-2.0-flash": "gemini-3-flash-preview", "gemini-2.5-flash": "gemini-3-flash-preview", "gemini-3.8-flash": "gemini-3-flash-preview"}.get(model_name, model_name)
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
     payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]} if system_prompt else None,

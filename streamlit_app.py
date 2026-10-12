@@ -51,6 +51,17 @@ html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IB
 .hero-kicker { color:#e8c766; font-weight:700; font-size:.82rem; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:.5rem; }
 .hero h1 { color:#f8fafc; font-family:'Noto Kufi Arabic',sans-serif; font-size:2rem; font-weight:700; line-height:1.55; margin:0 0 .55rem; letter-spacing:-.4px; }
 .hero p { color:#e8dcca; font-size:1.02rem; margin:0; max-width:720px; }
+.legal-cover { position:relative; overflow:hidden; max-width:900px; margin:0 auto 1.25rem; padding:2.35rem 2rem 1.65rem; text-align:center; border:1px solid rgba(255,222,135,.34); border-radius:28px; background:linear-gradient(135deg,rgba(102,63,31,.48),rgba(37,21,15,.60) 55%,rgba(103,69,32,.30)); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.13); backdrop-filter:blur(22px) saturate(135%); -webkit-backdrop-filter:blur(22px) saturate(135%); }
+.legal-cover:before, .legal-cover:after { content:""; position:absolute; width:180px; height:180px; border:1px solid rgba(232,199,102,.13); border-radius:50%; pointer-events:none; }
+.legal-cover:before { top:-105px; right:-55px; box-shadow:0 0 0 18px rgba(232,199,102,.04), 0 0 0 36px rgba(232,199,102,.025); }
+.legal-cover:after { bottom:-120px; left:-55px; box-shadow:0 0 0 18px rgba(232,199,102,.04), 0 0 0 36px rgba(232,199,102,.025); }
+.cover-emblem { position:relative; z-index:1; width:58px; height:58px; display:grid; place-items:center; margin:0 auto .85rem; border:1px solid rgba(255,231,151,.55); border-radius:18px; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:30px; box-shadow:0 12px 28px rgba(212,175,55,.28); }
+.cover-kicker { position:relative; z-index:1; color:#e8c766; font-size:.72rem; font-weight:700; letter-spacing:2px; }
+.legal-cover h1 { position:relative; z-index:1; margin:.35rem 0 .35rem; color:#fff8e8; font-family:'Noto Kufi Arabic',sans-serif; font-size:2rem; font-weight:800; }
+.legal-cover p { position:relative; z-index:1; margin:0; color:#e6d7c1; font-size:.95rem; }
+.cover-line { position:relative; z-index:1; width:80px; height:2px; margin:1rem auto .7rem; background:linear-gradient(90deg,transparent,#e8c766,transparent); }
+.legal-cover span { position:relative; z-index:1; color:#cdb995; font-size:.78rem; }
+.admin-panel-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; text-align:center; margin:.4rem 0 .7rem; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 .metric-label { color:#cbb998; font-size:.8rem; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; }
@@ -128,7 +139,15 @@ if not st.session_state.auth_user:
     with st.form("login_form"):
         username = st.text_input("اسم المستخدم")
         password = st.text_input("كلمة المرور", type="password")
-        submitted = st.form_submit_button("دخول", type="primary", use_container_width=True)
+        login_col, guest_col = st.columns(2)
+        with login_col:
+            submitted = st.form_submit_button("دخول", type="primary", use_container_width=True)
+        with guest_col:
+            guest_submitted = st.form_submit_button("الدخول كضيف", use_container_width=True)
+        if guest_submitted:
+            st.session_state.auth_user = {"username": "ضيف", "role": "user", "guest": True}
+            st.session_state.chat_history = []
+            st.rerun()
         if submitted:
             user = authenticate(username.strip(), password)
             if user:
@@ -140,6 +159,7 @@ if not st.session_state.auth_user:
 
 current_user = st.session_state.auth_user or {"username": "guest", "role": "user"}
 is_admin = current_user.get("role") == "admin"
+is_guest = bool(current_user.get("guest"))
 
 @st.cache_data(show_spinner=False)
 def load_corpus():
@@ -378,6 +398,8 @@ with st.sidebar:
     st.markdown(f'<div class="source-chip">● ذاكرة القوانين: {"دائمة في قاعدة البيانات" if storage_configured() else "غير مفعلة"}</div>', unsafe_allow_html=True)
     st.markdown('<div class="source-chip">● ذاكرة الشات: مؤقتة لهذه الجلسة</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="source-chip">● المستخدم: {current_user.get("username")}</div>', unsafe_allow_html=True)
+    if is_guest:
+        st.markdown('<div class="source-chip">● وضع الضيف: الشات والبحث فقط</div>', unsafe_allow_html=True)
     if configured_users and st.button("تسجيل الخروج", use_container_width=True):
         st.session_state.auth_user = None
         st.session_state.chat_history = []
@@ -415,38 +437,51 @@ with st.sidebar:
                 st.info("هذا الملف محفوظ بالفعل وجاهز للبحث.")
     else:
         st.info("وضع المستخدم: يمكنك استخدام الشات والبحث فقط. إضافة القوانين متاحة للمدير.")
-    st.divider()
-    st.markdown("### حالة المكتبة")
-    st.metric("القوانين المفهرسة", len([x for x in laws if not x.get("error")]))
-    st.metric("المواد والمقاطع", len(rows))
-    if st.button("تحديث الفهرس", use_container_width=True):
-        invalidate()
-        st.rerun()
-    if is_admin and st.button("إعادة فهرسة كل القوانين", use_container_width=True):
-        with st.spinner("جاري إعادة تحليل وحفظ كل القوانين..."):
-            fresh_laws, fresh_rows = load_all(DATA_DIR, PARSED_DIR)
-            if storage_configured():
-                for fresh_law in fresh_laws:
-                    fresh_id = fresh_law.get("document_id")
-                    fresh_law_rows = [r for r in fresh_rows if r.get("document_id") == fresh_id]
-                    if fresh_law_rows:
-                        save_document(fresh_law, fresh_law_rows)
-        invalidate()
-        st.success("تمت إعادة فهرسة كل القوانين وحفظها.")
-        st.rerun()
+    if is_admin:
+        st.divider()
+        st.caption("تفاصيل المكتبة متاحة من تبويب لوحة الإدارة داخل الصفحة.")
     if st.button("مسح المحادثة", use_container_width=True):
         st.session_state.chat_history = []
         st.rerun()
 
-st.markdown('<section class="hero"><div class="hero-kicker">LEXGO LEGAL ASSISTANT</div><h1>مستشارك القانوني الذكي</h1><p>تحدث مع مكتبتك القانونية بالعربية. ارفع القوانين، اسأل عن أي مادة، واحصل على إجابة موثقة بالمصدر والصفحة.</p></section>', unsafe_allow_html=True)
+st.markdown('<section class="legal-cover"><div class="cover-emblem">⚖</div><div class="cover-kicker">LEXGO · LEGAL CHAT</div><h1>المستشار القانوني</h1><p>مساحة محادثة رسمية للبحث في القوانين والمواد المرفوعة</p><div class="cover-line"></div><span>إجابة موثقة من مكتبة التشريعات الخاصة بك</span></section>', unsafe_allow_html=True)
 
-stat1, stat2, stat3 = st.columns(3)
-stat1.markdown(f'<div class="metric-card"><div class="metric-label">القوانين المتاحة</div><div class="metric-value">{len([x for x in laws if not x.get("error")] )}</div></div>', unsafe_allow_html=True)
-stat2.markdown(f'<div class="metric-card"><div class="metric-label">المقاطع المفهرسة</div><div class="metric-value">{len(rows)}</div></div>', unsafe_allow_html=True)
-stat3.markdown('<div class="metric-card"><div class="metric-label">نوع البحث</div><div class="metric-value">هجين عربي</div></div>', unsafe_allow_html=True)
+if is_admin:
+    admin_tab = st.tabs(["لوحة الإدارة"])[0]
+    with admin_tab:
+        with st.expander("لوحة الإدارة · القوانين والفهرسة", expanded=False):
+            st.markdown('<div class="admin-panel-title">إدارة مكتبة التشريعات</div><div class="chat-intro">هذه المعلومات والأدوات ظاهرة للمدير فقط ولا تظهر للمستخدم العادي.</div>', unsafe_allow_html=True)
+            stat1, stat2, stat3 = st.columns(3)
+            stat1.markdown(f'<div class="metric-card"><div class="metric-label">القوانين المتاحة</div><div class="metric-value">{len([x for x in laws if not x.get("error")])}</div></div>', unsafe_allow_html=True)
+            stat2.markdown(f'<div class="metric-card"><div class="metric-label">المواد المفهرسة</div><div class="metric-value">{len(rows)}</div></div>', unsafe_allow_html=True)
+            stat3.markdown('<div class="metric-card"><div class="metric-label">نوع البحث</div><div class="metric-value">هجين عربي</div></div>', unsafe_allow_html=True)
+            if st.button("تحديث الفهرس", key="admin_refresh_index", use_container_width=True):
+                invalidate()
+                st.rerun()
+            if st.button("إعادة فهرسة كل القوانين", key="admin_reindex_all", use_container_width=True):
+                with st.spinner("جاري إعادة تحليل وحفظ كل القوانين..."):
+                    fresh_laws, fresh_rows = load_all(DATA_DIR, PARSED_DIR)
+                    if storage_configured():
+                        for fresh_law in fresh_laws:
+                            fresh_id = fresh_law.get("document_id")
+                            fresh_law_rows = [r for r in fresh_rows if r.get("document_id") == fresh_id]
+                            if fresh_law_rows:
+                                save_document(fresh_law, fresh_law_rows)
+                invalidate()
+                st.success("تمت إعادة فهرسة كل القوانين وحفظها.")
+                st.rerun()
+            with st.expander("عرض القوانين المفهرسة", expanded=False):
+                for law in laws:
+                    if law.get("error"):
+                        st.error(f"{law.get('file_name')}: {law.get('error')}")
+                        continue
+                    st.markdown(f'<div class="law-card"><strong>{law.get("title")}</strong><br><span class="source-chip">القانون {law.get("law_number") or "غير مستخرج"}</span><span class="source-chip">سنة {law.get("law_year") or "غير مستخرجة"}</span><span class="source-chip">{law.get("article_count", 0)} مادة</span></div>', unsafe_allow_html=True)
+                    if law.get("extraction", {}).get("needs_review"):
+                        st.warning("يحتاج هذا القانون إلى مراجعة الحقول المستخرجة.")
+    
 chat_title, new_chat = st.columns([5, 1])
 with chat_title:
-    st.markdown('<div class="section-title">محادثتك مع المستشار</div><div class="chat-intro">اكتب رسالتك مثل أي chatbot. سيبقى سياق هذه المحادثة مؤقتًا داخل الجلسة، بينما تبقى القوانين محفوظة في قاعدة البيانات.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">محادثتك مع المستشار</div><div class="chat-intro">اكتب سؤالك مباشرة. سيبقى سياق هذه المحادثة مؤقتًا داخل الجلسة، بينما تبقى القوانين محفوظة في قاعدة البيانات.</div>', unsafe_allow_html=True)
 with new_chat:
     if st.button("محادثة جديدة", use_container_width=True):
         st.session_state.chat_history = []
@@ -455,15 +490,6 @@ with new_chat:
 if not laws:
     st.info("ارفع أول ملف PDF أو DOCX من القائمة الجانبية للبدء.")
     st.stop()
-
-with st.expander("عرض القوانين المفهرسة", expanded=False):
-    for law in laws:
-        if law.get("error"):
-            st.error(f"{law.get('file_name')}: {law.get('error')}")
-            continue
-        st.markdown(f'<div class="law-card"><strong>{law.get("title")}</strong><br><span class="source-chip">القانون {law.get("law_number") or "غير مستخرج"}</span><span class="source-chip">سنة {law.get("law_year") or "غير مستخرجة"}</span><span class="source-chip">{law.get("article_count", 0)} مادة</span></div>', unsafe_allow_html=True)
-        if law.get("extraction", {}).get("needs_review"):
-            st.warning("يحتاج هذا القانون إلى مراجعة الحقول المستخرجة.")
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []

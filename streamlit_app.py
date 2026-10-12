@@ -149,7 +149,10 @@ def invalidate():
 
 def call_gemini(prompt: str, system_prompt: str = "") -> str:
     key = _secret("GEMINI_API_KEY")
-    model_name = _secret("GEMINI_MODEL", "gemini-2.5-flash")
+    model_name = _secret("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    if model_name.startswith("models/"):
+        model_name = model_name[7:]
+    model_name = model_name.split(":", 1)[0]
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
     payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]} if system_prompt else None,
@@ -164,6 +167,17 @@ def call_gemini(prompt: str, system_prompt: str = "") -> str:
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        if exc.code == 404:
+            available = ""
+            try:
+                models_url = "https://generativelanguage.googleapis.com/v1beta/models?key=" + urllib.parse.quote(key, safe="")
+                with urllib.request.urlopen(models_url, timeout=30) as models_response:
+                    models_data = json.loads(models_response.read().decode("utf-8"))
+                names = [m.get("name", "").replace("models/", "") for m in models_data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
+                available = " النماذج المتاحة: " + ", ".join(names[:12])
+            except Exception:
+                pass
+            return f"نموذج Gemini غير موجود: {model_name}. غيّر GEMINI_MODEL إلى اسم متاح مثل gemini-2.5-flash.{available} التفاصيل: {detail[:500]}"
         return f"تعذر اتصال Gemini (HTTP {exc.code}). راجع المفتاح واسم النموذج. التفاصيل: {detail[:800]}"
     except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
         return f"تعذر اتصال Gemini API: {exc}"

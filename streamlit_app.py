@@ -375,9 +375,12 @@ with st.sidebar:
         else:
             st.error(gemini_test)
     st.markdown(f'<div class="source-chip">● التخزين: {"قاعدة بيانات دائمة" if storage_configured() else "محلي مؤقت"}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="source-chip">● ذاكرة القوانين: {"دائمة في قاعدة البيانات" if storage_configured() else "غير مفعلة"}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="source-chip">● ذاكرة الشات: مؤقتة لهذه الجلسة</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="source-chip">● المستخدم: {current_user.get("username")}</div>', unsafe_allow_html=True)
     if configured_users and st.button("تسجيل الخروج", use_container_width=True):
         st.session_state.auth_user = None
+        st.session_state.chat_history = []
         st.rerun()
     if is_admin:
         st.markdown("### إضافة قانون جديد")
@@ -441,7 +444,13 @@ stat1, stat2, stat3 = st.columns(3)
 stat1.markdown(f'<div class="metric-card"><div class="metric-label">القوانين المتاحة</div><div class="metric-value">{len([x for x in laws if not x.get("error")] )}</div></div>', unsafe_allow_html=True)
 stat2.markdown(f'<div class="metric-card"><div class="metric-label">المقاطع المفهرسة</div><div class="metric-value">{len(rows)}</div></div>', unsafe_allow_html=True)
 stat3.markdown('<div class="metric-card"><div class="metric-label">نوع البحث</div><div class="metric-value">هجين عربي</div></div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">ابدأ محادثتك القانونية</div><div class="chat-intro">اسأل عن نص مادة، رقم قانون، شرط، إجراء أو مقارنة بين نصين. للحصول على نتيجة أدق اذكر اسم القانون ورقم المادة إن أمكن.</div>', unsafe_allow_html=True)
+chat_title, new_chat = st.columns([5, 1])
+with chat_title:
+    st.markdown('<div class="section-title">محادثتك مع المستشار</div><div class="chat-intro">اكتب رسالتك مثل أي chatbot. سيبقى سياق هذه المحادثة مؤقتًا داخل الجلسة، بينما تبقى القوانين محفوظة في قاعدة البيانات.</div>', unsafe_allow_html=True)
+with new_chat:
+    if st.button("محادثة جديدة", use_container_width=True):
+        st.session_state.chat_history = []
+        st.rerun()
 
 if not laws:
     st.info("ارفع أول ملف PDF أو DOCX من القائمة الجانبية للبدء.")
@@ -500,6 +509,25 @@ def verified_search(question: str) -> list[dict]:
         return [row for row in legacy_results if float(row.get("score", 0) or 0) >= 70.0]
 
 
+def temporary_chat_context() -> str:
+    """Return only the current session's recent messages; never read from persistence."""
+    recent = st.session_state.chat_history[-8:]
+    if not recent:
+        return ""
+    lines = []
+    for message in recent:
+        speaker = "المستخدم" if message.get("role") == "user" else "المستشار"
+        lines.append(f"{speaker}: {message.get('content', '')}")
+    return "\n".join(lines)[-6000:]
+
+
+def question_with_temporary_context(question: str) -> str:
+    context = temporary_chat_context()
+    if not context:
+        return question
+    return f"سياق المحادثة الحالية (للفهم فقط):\n{context}\n\nالسؤال الحالي: {question}"
+
+
 for message in st.session_state.chat_history:
     st.markdown(message_html(message["content"], message["role"]), unsafe_allow_html=True)
     if message["role"] == "assistant" and message.get("results"):
@@ -526,12 +554,12 @@ if question:
             results = verified_search(question)
             primary_results = complete_article_result(question, results)
             if primary_results:
-                answer = ask_llm(question, primary_results)
+                answer = ask_llm(question_with_temporary_context(question), primary_results)
             else:
                 answer = "لم أجد هذه المعلومة في الملفات القانونية المضافة. إذا كنت تقصد قانونًا أو مادة محددة، اذكر اسم القانون ورقم المادة لأبحث عنها بدقة."
         else:
             primary_results = []
-            answer = ask_general_llm(question)
+            answer = ask_general_llm(question_with_temporary_context(question))
         if legal_query:
             if intent == "legal_clarify":
                 primary_results = []

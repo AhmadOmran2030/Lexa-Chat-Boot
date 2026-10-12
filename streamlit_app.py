@@ -2,17 +2,27 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 
+# Ensure local project modules are resolved from the app root on Streamlit Cloud.
+APP_ROOT = Path(__file__).resolve().parent
+if str(APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT))
+try:
+    st.set_option("server.fileWatcherType", "none")
+except Exception:
+    pass
+
 from ingestion import ingest_file, load_all
 from rag_engine import LegalIndex, query_filters
 
 load_dotenv()
-BASE = Path(__file__).resolve().parent
+BASE = APP_ROOT
 DATA_DIR = BASE / "data"
 PARSED_DIR = BASE / "parsed_laws"
 DATA_DIR.mkdir(exist_ok=True)

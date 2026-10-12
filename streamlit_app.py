@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import hmac
+import html
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -35,36 +37,50 @@ PARSED_DIR.mkdir(exist_ok=True)
 
 st.set_page_config(page_title="LexGO | المستشار القانوني", page_icon="⚖️", layout="wide")
 st.markdown("""<style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
-html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', 'Cairo', sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap');
+html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', sans-serif; }
 [data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,rgba(33,20,15,.72) 0%,rgba(47,29,20,.58) 100%); border-left: 1px solid rgba(212,175,55,.22); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 [data-testid="stSidebar"] .block-container { padding-top: 2rem; }
 .stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
 .main .block-container { max-width: 980px; width:100%; margin:0 auto; padding: 2.5rem 1.5rem 5rem; }
 .brand-mark { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .brand-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#f4d06f,#a87519); color:#2b180b; font-size:24px; box-shadow:0 10px 28px rgba(212,175,55,.22); }
-.brand-name { font-family:'Cairo',sans-serif; font-size:1.45rem; font-weight:800; color:#f8fafc; letter-spacing:-.5px; }
+.brand-name { font-family:'Noto Kufi Arabic',sans-serif; font-size:1.32rem; font-weight:800; color:#f8fafc; letter-spacing:-.5px; }
 .brand-sub { color:#e6c56a; font-size:.78rem; margin:0 0 1.2rem 56px; }
 .hero { max-width:900px; margin:0 auto 1.5rem; padding:1.65rem 2rem; border:1px solid rgba(255,222,135,.28); border-radius:22px; background:linear-gradient(135deg,rgba(111,72,38,.34),rgba(42,24,17,.30)); box-shadow:0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(18px) saturate(125%); -webkit-backdrop-filter:blur(18px) saturate(125%); }
 .hero-kicker { color:#e8c766; font-weight:700; font-size:.82rem; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:.5rem; }
-.hero h1 { color:#f8fafc; font-family:'Cairo',sans-serif; font-size:2.1rem; line-height:1.35; margin:0 0 .55rem; }
+.hero h1 { color:#f8fafc; font-family:'Noto Kufi Arabic',sans-serif; font-size:2rem; font-weight:700; line-height:1.55; margin:0 0 .55rem; letter-spacing:-.4px; }
 .hero p { color:#e8dcca; font-size:1.02rem; margin:0; max-width:720px; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 .metric-label { color:#cbb998; font-size:.8rem; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; }
 .law-card { padding:1.1rem 1.25rem; border:1px solid rgba(255,222,135,.22); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(101,61,32,.30),rgba(35,21,15,.28)); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); }
 .source-chip { display:inline-block; padding:.3rem .65rem; margin:.15rem; border-radius:999px; background:rgba(212,175,55,.12); color:#f2d47c; font-size:.76rem; border:1px solid rgba(212,175,55,.22); }
-.section-title { color:#e2e8f0; font-family:'Cairo',sans-serif; font-size:1.25rem; font-weight:700; margin:.7rem 0 1rem; }
+.section-title { color:#e2e8f0; font-family:'Noto Kufi Arabic',sans-serif; font-size:1.12rem; font-weight:700; margin:.7rem 0 1rem; }
 div[data-testid="stFileUploader"] { border:1px dashed rgba(255,222,135,.55); border-radius:16px; padding:.4rem; background:rgba(91,49,22,.20); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
 button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); border:0; color:#21140d; }
-[data-testid="stChatMessage"] { border:1px solid rgba(255,222,135,.20); border-radius:18px; background:rgba(74,43,25,.28); box-shadow:0 12px 30px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); margin-bottom:1rem; }
+[data-testid="stChatMessage"] { border:0 !important; background:transparent !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
 [data-testid="stChatMessage"] p { line-height:2; }
 [data-testid="stChatInput"] { border:1px solid rgba(255,222,135,.42) !important; border-radius:18px !important; background:rgba(67,39,24,.34) !important; box-shadow:0 10px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 [data-testid="stChatInput"] textarea { color:#fff7e6 !important; }
-[data-testid="stExpander"], [data-testid="stForm"], [data-testid="stAlert"] { border:1px solid rgba(255,222,135,.20); border-radius:16px; background:rgba(72,42,25,.24); box-shadow:0 10px 26px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.07); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
-[data-testid="stForm"] { max-width:700px; margin:1.2rem auto 0; padding:1.1rem 1.25rem .8rem; }
+[data-testid="stExpander"] { border:0 !important; background:transparent !important; box-shadow:none !important; }
+[data-testid="stForm"] { max-width:700px; margin:1.2rem auto 0; padding:1.1rem 1.25rem .8rem; border:0 !important; background:rgba(72,42,25,.12); box-shadow:none !important; }
+[data-testid="stAlert"] { border:0 !important; border-right:3px solid rgba(212,175,55,.55); background:rgba(212,175,55,.06); box-shadow:none !important; }
 [data-testid="stFormSubmitButton"] button { width:100%; border:1px solid rgba(255,231,151,.45) !important; border-radius:12px !important; background:linear-gradient(135deg,#e0bd52,#9b701d) !important; color:#24160d !important; box-shadow:0 8px 20px rgba(212,175,55,.18); }
 [data-testid="stTextInput"] input, [data-testid="stNumberInput"] input, [data-testid="stSelectbox"] div[data-baseweb="select"] > div { background:rgba(35,21,15,.34) !important; border-color:rgba(255,222,135,.28) !important; color:#fff7e6 !important; backdrop-filter:blur(10px); }
+.legal-notice { margin-top:1rem; padding:.85rem 1rem; border-right:3px solid #d4af37; border-radius:12px; background:rgba(212,175,55,.09); color:#e8dcca; font-size:.88rem; line-height:1.9; }
+blockquote { border-right:3px solid #d4af37 !important; border-left:0 !important; background:rgba(212,175,55,.09); border-radius:12px; color:#e8dcca !important; padding:.75rem 1rem !important; }
+.law-card p, .law-card .legal-text { font-family:'Amiri',serif; font-size:1.12rem; line-height:2.05; }
+.source-chip { font-family:'IBM Plex Sans Arabic',sans-serif; }
+.chat-intro { max-width:900px; margin:0 auto 1.25rem; padding:.85rem 1.1rem; border:1px solid rgba(255,222,135,.16); border-radius:14px; color:#d9cbb7; background:rgba(72,42,25,.18); text-align:center; }
+.chat-row { max-width:780px; margin:1.25rem auto 2rem; text-align:center; }
+.chat-meta { display:flex; justify-content:center; align-items:center; gap:.55rem; color:#d8bb6a; font-family:'Noto Kufi Arabic',sans-serif; font-size:.76rem; font-weight:600; margin-bottom:.65rem; }
+.chat-avatar { width:30px; height:30px; display:inline-grid; place-items:center; border-radius:50%; color:#28170d; background:linear-gradient(135deg,#f5d77c,#a6781f); box-shadow:0 6px 16px rgba(212,175,55,.2); }
+.chat-text { color:#f5ead8; font-size:1.02rem; line-height:2.1; padding:0 .8rem 1.15rem; border-bottom:1px solid rgba(212,175,55,.20); }
+.chat-row.user .chat-meta { color:#b8a58d; }
+.chat-row.user .chat-avatar { background:rgba(212,175,55,.16); color:#f4d37c; box-shadow:none; }
+.chat-row.user .chat-text { color:#eadcc7; font-size:.98rem; border-bottom-color:rgba(255,255,255,.10); }
+.legal-inline { margin-top:1rem; padding:.65rem .9rem; border-right:3px solid #d4af37; border-radius:10px; background:rgba(212,175,55,.08); color:#d9cbb7; font-size:.86rem; line-height:1.9; text-align:right; }
 </style>""", unsafe_allow_html=True)
 
 
@@ -209,7 +225,7 @@ def ask_llm(question: str, results: list[dict]) -> str:
         f"[مصدر {i}] القانون رقم {r.get('law_number')} لسنة {r.get('law_year')}، المادة {r.get('article_number')}، الفقرة {r.get('paragraph_number')}، البند {r.get('clause_number')}، الصفحة {r.get('page_start')}\n{r.get('text')}"
         for i, r in enumerate(results, 1)
     )
-    system_prompt = "أنت مساعد بحث قانوني. أجب بالعربية من المصادر فقط. لا تستنتج معلومة غير موجودة. اذكر الاستشهاد بالمادة والفقرة والبند والصفحة. إذا لم تكفِ المصادر قل ذلك بوضوح."
+    system_prompt = "أنت مساعد بحث قانوني عربي. أجب من النصوص المسترجعة فقط. ابدأ بخلاصة مباشرة، ثم اشرح بنقاط قصيرة عند الحاجة، واذكر رقم القانون والسنة والمادة والفقرة والبند والصفحة. لا تستنتج معلومة غير موجودة ولا تقدم رأيًا قانونيًا شخصيًا. إذا لم تكفِ المصادر قل ذلك بوضوح."
     user_prompt = f"السؤال: {question}\n\nالمصادر:\n{context}"
     if gemini_key:
         return call_gemini(user_prompt, system_prompt)
@@ -334,7 +350,7 @@ stat1, stat2, stat3 = st.columns(3)
 stat1.markdown(f'<div class="metric-card"><div class="metric-label">القوانين المتاحة</div><div class="metric-value">{len([x for x in laws if not x.get("error")] )}</div></div>', unsafe_allow_html=True)
 stat2.markdown(f'<div class="metric-card"><div class="metric-label">المقاطع المفهرسة</div><div class="metric-value">{len(rows)}</div></div>', unsafe_allow_html=True)
 stat3.markdown('<div class="metric-card"><div class="metric-label">نوع البحث</div><div class="metric-value">هجين عربي</div></div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">ابدأ محادثتك القانونية</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">ابدأ محادثتك القانونية</div><div class="chat-intro">اسأل عن نص مادة، رقم قانون، شرط، إجراء أو مقارنة بين نصين. للحصول على نتيجة أدق اذكر اسم القانون ورقم المادة إن أمكن.</div>', unsafe_allow_html=True)
 
 if not laws:
     st.info("ارفع أول ملف PDF أو DOCX من القائمة الجانبية للبدء.")
@@ -352,16 +368,27 @@ with st.expander("عرض القوانين المفهرسة", expanded=False):
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+
+def message_html(content: str, role: str) -> str:
+    body = html.escape(content or "").replace("\n", "<br>")
+    body = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", body)
+    body = body.replace("&gt; <strong>تنبيه مهني:</strong>", '<div class="legal-inline"><strong>تنبيه مهني:</strong>')
+    if 'class="legal-inline"' in body:
+        body += "</div>"
+    label = "المستشار القانوني" if role == "assistant" else "سؤالك"
+    avatar = "⚖" if role == "assistant" else "•"
+    return f'<div class="chat-row {role}"><div class="chat-meta"><span class="chat-avatar">{avatar}</span><span>{label}</span></div><div class="chat-text">{body}</div></div>'
+
+
 for message in st.session_state.chat_history:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-        if message["role"] == "assistant" and message.get("results"):
-            st.markdown('<div class="section-title">المصادر والتحقق</div>', unsafe_allow_html=True)
-            for i, result in enumerate(message["results"], 1):
-                citation = f"القانون {result.get('law_number') or '؟'} لسنة {result.get('law_year') or '؟'} — المادة {result.get('article_number') or '؟'} — الفقرة {result.get('paragraph_number') or '؟'} — البند {result.get('clause_number') or '؟'} — صـ {result.get('page_start') or '؟'}"
-                with st.expander(f"المصدر {i}  ·  تطابق {result.get('score')}%  ·  المادة {result.get('article_number') or '؟'}"):
-                    st.markdown(f'<div class="law-card"><div class="source-chip">{citation}</div><p style="color:#e2e8f0;line-height:2;margin-top:12px">{result.get("text")}</p></div>', unsafe_allow_html=True)
-                    st.caption(f"مرشحات البحث: {message.get('filters') or 'بحث عام'}")
+    st.markdown(message_html(message["content"], message["role"]), unsafe_allow_html=True)
+    if message["role"] == "assistant" and message.get("results"):
+        st.markdown('<div class="section-title" style="text-align:center">المراجع القانونية</div>', unsafe_allow_html=True)
+        for i, result in enumerate(message["results"][:1], 1):
+            citation = f"القانون {result.get('law_number') or '؟'} لسنة {result.get('law_year') or '؟'} — المادة {result.get('article_number') or '؟'} — الفقرة {result.get('paragraph_number') or '؟'} — البند {result.get('clause_number') or '؟'} — صـ {result.get('page_start') or '؟'}"
+            with st.expander(f"المادة {result.get('article_number') or '؟'}  ·  المرجع {i}"):
+                st.markdown(f'<div class="law-card"><div class="source-chip">{citation}</div><p style="color:#e2e8f0;line-height:2;margin-top:12px;text-align:center">{result.get("text")}</p></div>', unsafe_allow_html=True)
+                st.caption(f"مرشحات البحث: {message.get('filters') or 'بحث عام'}")
 
 if not st.session_state.chat_history:
     st.info("اكتب سؤالك في مربع المحادثة أسفل الصفحة، مثل: ما نص المادة 1 من القانون المدني؟")
@@ -371,10 +398,12 @@ if question:
     filters = query_filters(question)
     with st.spinner("جاري البحث في المواد القانونية..."):
         results = index.search(question, k=8)
-        if results:
-            answer = ask_llm(question, results)
+        primary_results = results[:1]
+        if primary_results:
+            answer = ask_llm(question, primary_results)
         else:
             answer = "لم أجد نصًا مطابقًا في الملفات المضافة. جرّب ذكر رقم القانون أو رقم المادة أو استخدم كلمات أكثر تحديدًا."
+        answer += "\n\n> **تنبيه مهني:** هذه إجابة إرشادية مبنية على الملفات المتاحة في النظام. إذا لم تحصل على إجابة كاملة، أو كان السؤال متعمقًا أو مرتبطًا بإجراء عملي، يُرجى الرجوع إلى **الشؤون القانونية** أو مستشار قانوني مختص."
     st.session_state.chat_history.append({"role": "user", "content": question})
-    st.session_state.chat_history.append({"role": "assistant", "content": answer, "results": results, "filters": filters})
+    st.session_state.chat_history.append({"role": "assistant", "content": answer, "results": primary_results, "filters": filters})
     st.rerun()

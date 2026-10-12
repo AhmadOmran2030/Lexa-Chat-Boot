@@ -37,7 +37,7 @@ st.set_page_config(page_title="LexGO | المستشار القانوني", page_
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', 'Cairo', sans-serif; }
-[data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,#21140f 0%,#2f1d14 100%); border-left: 1px solid rgba(212,175,55,.18); }
+[data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,rgba(33,20,15,.72) 0%,rgba(47,29,20,.58) 100%); border-left: 1px solid rgba(212,175,55,.22); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 [data-testid="stSidebar"] .block-container { padding-top: 2rem; }
 .stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
 .main .block-container { max-width: 1180px; padding: 2.5rem 2rem 5rem; }
@@ -45,22 +45,24 @@ html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IB
 .brand-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#f4d06f,#a87519); color:#2b180b; font-size:24px; box-shadow:0 10px 28px rgba(212,175,55,.22); }
 .brand-name { font-family:'Cairo',sans-serif; font-size:1.45rem; font-weight:800; color:#f8fafc; letter-spacing:-.5px; }
 .brand-sub { color:#e6c56a; font-size:.78rem; margin:0 0 1.2rem 56px; }
-.hero { padding:2rem 2.2rem; border:1px solid rgba(212,175,55,.24); border-radius:24px; background:linear-gradient(135deg,rgba(75,43,24,.94),rgba(34,20,14,.94)); box-shadow:0 18px 50px rgba(0,0,0,.28); margin-bottom:1.5rem; }
+.hero { padding:2rem 2.2rem; border:1px solid rgba(255,222,135,.28); border-radius:24px; background:linear-gradient(135deg,rgba(111,72,38,.34),rgba(42,24,17,.30)); box-shadow:0 18px 50px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(18px) saturate(125%); -webkit-backdrop-filter:blur(18px) saturate(125%); margin-bottom:1.5rem; }
 .hero-kicker { color:#e8c766; font-weight:700; font-size:.82rem; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:.5rem; }
 .hero h1 { color:#f8fafc; font-family:'Cairo',sans-serif; font-size:2.45rem; line-height:1.35; margin:0 0 .55rem; }
 .hero p { color:#e8dcca; font-size:1.02rem; margin:0; max-width:720px; }
-.metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(212,175,55,.16); background:rgba(55,31,19,.78); }
+.metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
 .metric-label { color:#cbb998; font-size:.8rem; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; }
-.law-card { padding:1.1rem 1.25rem; border:1px solid rgba(212,175,55,.18); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(66,37,21,.86),rgba(34,20,14,.92)); }
+.law-card { padding:1.1rem 1.25rem; border:1px solid rgba(255,222,135,.22); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(101,61,32,.30),rgba(35,21,15,.28)); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); }
 .source-chip { display:inline-block; padding:.3rem .65rem; margin:.15rem; border-radius:999px; background:rgba(212,175,55,.12); color:#f2d47c; font-size:.76rem; border:1px solid rgba(212,175,55,.22); }
 .section-title { color:#e2e8f0; font-family:'Cairo',sans-serif; font-size:1.25rem; font-weight:700; margin:.7rem 0 1rem; }
-div[data-testid="stFileUploader"] { border:1px dashed rgba(212,175,55,.5); border-radius:16px; padding:.4rem; background:rgba(91,49,22,.24); }
+div[data-testid="stFileUploader"] { border:1px dashed rgba(255,222,135,.55); border-radius:16px; padding:.4rem; background:rgba(91,49,22,.20); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
 button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); border:0; color:#21140d; }
-[data-testid="stChatMessage"] { border:1px solid rgba(212,175,55,.12); border-radius:18px; background:rgba(53,29,17,.55); margin-bottom:1rem; }
+[data-testid="stChatMessage"] { border:1px solid rgba(255,222,135,.20); border-radius:18px; background:rgba(74,43,25,.28); box-shadow:0 12px 30px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.07); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); margin-bottom:1rem; }
 [data-testid="stChatMessage"] p { line-height:2; }
-[data-testid="stChatInput"] { border-color:rgba(212,175,55,.45) !important; background:#2b190f !important; }
+[data-testid="stChatInput"] { border:1px solid rgba(255,222,135,.42) !important; border-radius:18px !important; background:rgba(67,39,24,.34) !important; box-shadow:0 10px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 [data-testid="stChatInput"] textarea { color:#fff7e6 !important; }
+[data-testid="stExpander"], [data-testid="stForm"], [data-testid="stAlert"] { border:1px solid rgba(255,222,135,.20); border-radius:16px; background:rgba(72,42,25,.24); box-shadow:0 10px 26px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.07); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+[data-testid="stTextInput"] input, [data-testid="stNumberInput"] input, [data-testid="stSelectbox"] div[data-baseweb="select"] > div { background:rgba(35,21,15,.34) !important; border-color:rgba(255,222,135,.28) !important; color:#fff7e6 !important; backdrop-filter:blur(10px); }
 </style>""", unsafe_allow_html=True)
 
 
@@ -101,8 +103,10 @@ if "auth_user" not in st.session_state:
     st.session_state.auth_user = None
 
 configured_users = _users()
-if configured_users and not st.session_state.auth_user:
+if not st.session_state.auth_user:
     st.markdown('<div class="hero"><div class="hero-kicker">LEXGO SECURE ACCESS</div><h1>تسجيل الدخول إلى المستشار القانوني</h1><p>سجّل الدخول للوصول إلى مكتبة القوانين. صلاحية إضافة الملفات متاحة للمدير فقط.</p></div>', unsafe_allow_html=True)
+    if not configured_users:
+        st.warning("لم يتم إعداد مستخدمين بعد. أضف ADMIN_USERNAME وADMIN_PASSWORD في Streamlit Secrets ثم أعد تشغيل التطبيق.")
     with st.form("login_form"):
         username = st.text_input("اسم المستخدم")
         password = st.text_input("كلمة المرور", type="password")
@@ -149,11 +153,11 @@ def invalidate():
 
 def call_gemini(prompt: str, system_prompt: str = "") -> str:
     key = _secret("GEMINI_API_KEY")
-    model_name = _secret("GEMINI_MODEL", "gemini-3.8-flash").strip()
+    model_name = _secret("GEMINI_MODEL", "gemini-2.5-flash").strip()
     if model_name.startswith("models/"):
         model_name = model_name[7:]
     model_name = model_name.split(":", 1)[0]
-    model_name = {"gemini-2.0-flash": "gemini-3.8-flash", "gemini-2.5-flash": "gemini-3.8-flash"}.get(model_name, model_name)
+    model_name = {"gemini-2.0-flash": "gemini-2.5-flash", "gemini-3.8-flash": "gemini-2.5-flash"}.get(model_name, model_name)
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
     payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]} if system_prompt else None,

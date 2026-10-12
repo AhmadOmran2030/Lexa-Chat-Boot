@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 import hmac
 import html
+import hashlib
 import os
 import re
+import secrets
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -132,17 +135,38 @@ def _users() -> list[dict]:
         except json.JSONDecodeError:
             pass
     admin_user = _secret("ADMIN_USERNAME")
+    admin_password_hash = _secret("ADMIN_PASSWORD_HASH")
     admin_password = _secret("ADMIN_PASSWORD")
-    if admin_user and admin_password:
-        return [{"username": admin_user, "password": admin_password, "role": "admin"}]
+    if admin_user and (admin_password_hash or admin_password):
+        return [{"username": admin_user, "password_hash": admin_password_hash, "password": admin_password, "role": "admin"}]
     return []
 
 
 def authenticate(username: str, password: str) -> dict | None:
     for user in _users():
-        if hmac.compare_digest(str(user.get("username", "")), username) and hmac.compare_digest(str(user.get("password", "")), password):
+        stored_password = str(user.get("password_hash") or user.get("password", ""))
+        password_ok = verify_password(password, stored_password)
+        if hmac.compare_digest(str(user.get("username", "")), username) and password_ok:
             return {"username": username, "role": user.get("role", "user")}
     return None
+
+
+def verify_password(password: str, stored: str) -> bool:
+    """Accept PBKDF2 hashes; retain plaintext compatibility for existing Secrets during migration."""
+    if stored.startswith("pbkdf2_sha256$"):
+        try:
+            _, iterations, salt, expected = stored.split("$", 3)
+            actual = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), int(iterations)).hex()
+            return hmac.compare_digest(actual, expected)
+        except (ValueError, TypeError):
+            return False
+    return bool(stored) and hmac.compare_digest(stored, password)
+
+
+def hash_password(password: str, iterations: int = 310000) -> str:
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), iterations).hex()
+    return f"pbkdf2_sha256${iterations}${salt}${digest}"
 
 
 if "auth_user" not in st.session_state:
@@ -219,6 +243,27 @@ def localized_message(key: str) -> str:
     language = st.session_state.get("response_language", "ar")
     return LOCALIZED_MESSAGES[key].get(language, LOCALIZED_MESSAGES[key]["ar"])
 
+
+UI_TEXT = {
+    "cover_title": {"ar": "المستشار القانوني", "en": "Legal Counsel", "fr": "Conseiller juridique"},
+    "cover_sub": {"ar": "مساحة محادثة رسمية للبحث في القوانين والمواد المرفوعة", "en": "A formal chat space for searching uploaded laws and articles", "fr": "Un espace de discussion officiel pour rechercher les lois et articles importés"},
+    "cover_note": {"ar": "إجابة موثقة من مكتبة التشريعات الخاصة بك", "en": "Verified answers from your legislation library", "fr": "Réponses vérifiées à partir de votre bibliothèque législative"},
+    "chat_title": {"ar": "محادثتك مع المستشار", "en": "Your conversation with Legal Counsel", "fr": "Votre conversation avec le conseiller"},
+    "chat_intro": {"ar": "اكتب سؤالك مباشرة. سيبقى سياق هذه المحادثة مؤقتًا داخل الجلسة، بينما تبقى القوانين محفوظة في قاعدة البيانات.", "en": "Ask your question directly. This conversation remains temporary within the session, while laws remain permanently stored in the database.", "fr": "Posez votre question directement. Le contexte de cette conversation reste temporaire dans la session, tandis que les lois restent enregistrées dans la base de données."},
+    "new_chat": {"ar": "محادثة جديدة", "en": "New chat", "fr": "Nouvelle conversation"},
+    "input": {"ar": "اكتب سؤالك عن القوانين هنا...", "en": "Ask your legal question here...", "fr": "Écrivez votre question juridique ici..."},
+    "no_laws": {"ar": "ارفع أول ملف PDF أو DOCX من القائمة الجانبية للبدء.", "en": "Upload your first PDF or DOCX from the sidebar to begin.", "fr": "Importez votre premier fichier PDF ou DOCX depuis la barre latérale pour commencer."},
+}
+
+
+def ui_text(key: str) -> str:
+    language = st.session_state.get("response_language", "ar")
+    return UI_TEXT[key].get(language, UI_TEXT[key]["ar"])
+
+
+def service_error_message() -> str:
+    return {"ar": "تعذر تشغيل خدمة الإجابة الذكية حاليًا. حاول مرة أخرى لاحقًا.", "en": "The smart answer service is currently unavailable. Please try again later.", "fr": "Le service de réponse intelligente est momentanément indisponible. Veuillez réessayer plus tard."}.get(st.session_state.get("response_language", "ar"), "تعذر تشغيل خدمة الإجابة الذكية حاليًا. حاول مرة أخرى لاحقًا.")
+
 @st.cache_data(show_spinner=False)
 def load_corpus():
     local_laws, local_rows = load_all(DATA_DIR, PARSED_DIR)
@@ -269,19 +314,12 @@ def call_gemini(prompt: str, system_prompt: str = "") -> str:
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         if exc.code == 404:
-            available = ""
-            try:
-                models_url = "https://generativelanguage.googleapis.com/v1beta/models?key=" + urllib.parse.quote(key, safe="")
-                with urllib.request.urlopen(models_url, timeout=30) as models_response:
-                    models_data = json.loads(models_response.read().decode("utf-8"))
-                names = [m.get("name", "").replace("models/", "") for m in models_data.get("models", []) if "generateContent" in m.get("supportedGenerationMethods", [])]
-                available = " النماذج المتاحة: " + ", ".join(names[:12])
-            except Exception:
-                pass
-            return f"نموذج Gemini غير موجود: {model_name}. غيّر GEMINI_MODEL إلى اسم متاح مثل gemini-2.5-flash.{available} التفاصيل: {detail[:500]}"
-        return f"تعذر اتصال Gemini (HTTP {exc.code}). راجع المفتاح واسم النموذج. التفاصيل: {detail[:800]}"
+            return service_error_message()
+        if exc.code in {408, 429, 500, 502, 503, 504}:
+            return service_error_message()
+        return service_error_message()
     except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:
-        return f"تعذر اتصال Gemini API: {exc}"
+        return service_error_message()
 
 
 def ask_llm(question: str, results: list[dict]) -> str:
@@ -314,16 +352,19 @@ def ask_llm(question: str, results: list[dict]) -> str:
     else:
         model_name = secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
         client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key, timeout=60)
-    response = client.chat.completions.create(
-        model=model_name,
-        temperature=0,
-        max_tokens=900,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-    )
-    return response.choices[0].message.content or "لم يتم إنشاء إجابة."
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            temperature=0,
+            max_tokens=900,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        return response.choices[0].message.content or service_error_message()
+    except Exception:
+        return service_error_message()
 
 
 def is_legal_question(question: str) -> bool:
@@ -331,6 +372,10 @@ def is_legal_question(question: str) -> bool:
         "قانون", "المادة", "مادة", "فقرة", "بند", "تشريع", "لائحة", "قرار", "مرسوم",
         "محكمة", "دعوى", "حكم", "عقد", "التزام", "مسؤولية", "تعويض", "إدارة قانونية",
         "القوانين", "الملفات القانونية", "نص المادة", "الجريدة الرسمية",
+        "article", "articles", "law", "act", "code", "legal", "regulation", "decree",
+        "court", "claim", "judgment", "contract", "liability", "compensation", "statute",
+        "article de loi", "loi", "code civil", "juridique", "règlement", "décret", "tribunal",
+        "jugement", "contrat", "responsabilité", "indemnisation", "texte de l’article",
     )
     return bool(query_filters(question)) or any(term in question for term in legal_terms)
 
@@ -399,13 +444,16 @@ def ask_general_llm(question: str) -> str:
         else:
             client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key, timeout=60)
             model_name = _secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
-        response = client.chat.completions.create(
-            model=model_name,
-            temperature=.3,
-            max_tokens=300,
-            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}],
-        )
-        return response.choices[0].message.content or "تفضل، كيف يمكنني مساعدتك؟"
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                temperature=.3,
+                max_tokens=300,
+                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}],
+            )
+            return response.choices[0].message.content or service_error_message()
+        except Exception:
+            return service_error_message()
     language = st.session_state.get("response_language", "ar")
     if any(word in question for word in ("شكرا", "شكرًا", "مشكور")):
         return {"ar": "العفو، أنا هنا لمساعدتك.", "en": "You are welcome. I am here to help.", "fr": "Je vous en prie. Je suis là pour vous aider."}.get(language, "العفو، أنا هنا لمساعدتك.")
@@ -505,7 +553,7 @@ with st.sidebar:
         st.session_state.chat_history = []
         st.rerun()
 
-st.markdown('<section class="legal-cover"><div class="cover-emblem">⚖</div><div class="cover-kicker">LEXGO · LEGAL CHAT</div><h1>المستشار القانوني</h1><p>مساحة محادثة رسمية للبحث في القوانين والمواد المرفوعة</p><div class="cover-line"></div><span>إجابة موثقة من مكتبة التشريعات الخاصة بك</span></section>', unsafe_allow_html=True)
+st.markdown(f'<section class="legal-cover"><div class="cover-emblem">⚖</div><div class="cover-kicker">LEXGO · LEGAL CHAT</div><h1>{html.escape(ui_text("cover_title"))}</h1><p>{html.escape(ui_text("cover_sub"))}</p><div class="cover-line"></div><span>{html.escape(ui_text("cover_note"))}</span></section>', unsafe_allow_html=True)
 
 if is_admin:
     admin_tab = st.tabs(["لوحة الإدارة"])[0]
@@ -542,14 +590,14 @@ if is_admin:
     
 chat_title, new_chat = st.columns([5, 1])
 with chat_title:
-    st.markdown('<div class="section-title">محادثتك مع المستشار</div><div class="chat-intro">اكتب سؤالك مباشرة. سيبقى سياق هذه المحادثة مؤقتًا داخل الجلسة، بينما تبقى القوانين محفوظة في قاعدة البيانات.</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-title">{html.escape(ui_text("chat_title"))}</div><div class="chat-intro">{html.escape(ui_text("chat_intro"))}</div>', unsafe_allow_html=True)
 with new_chat:
-    if st.button("محادثة جديدة", use_container_width=True):
+    if st.button(ui_text("new_chat"), use_container_width=True):
         st.session_state.chat_history = []
         st.rerun()
 
 if not laws:
-    st.info("ارفع أول ملف PDF أو DOCX من القائمة الجانبية للبدء.")
+    st.info(ui_text("no_laws"))
     st.stop()
 
 if "chat_history" not in st.session_state:
@@ -615,6 +663,18 @@ def question_with_temporary_context(question: str) -> str:
     return f"سياق المحادثة الحالية (للفهم فقط):\n{context}\n\nالسؤال الحالي: {question}"
 
 
+def guest_request_allowed() -> bool:
+    """Limit guest sessions to 20 questions per rolling minute."""
+    now = time.time()
+    recent = [stamp for stamp in st.session_state.get("guest_requests", []) if now - stamp < 60]
+    if len(recent) >= 20:
+        st.session_state.guest_requests = recent
+        return False
+    recent.append(now)
+    st.session_state.guest_requests = recent
+    return True
+
+
 for message in st.session_state.chat_history:
     st.markdown(message_html(message["content"], message["role"]), unsafe_allow_html=True)
     if message["role"] == "assistant" and message.get("results"):
@@ -628,8 +688,11 @@ for message in st.session_state.chat_history:
 if not st.session_state.chat_history:
     st.info("اكتب سؤالك في مربع المحادثة أسفل الصفحة، مثل: ما نص المادة 1 من القانون المدني؟")
 
-question = st.chat_input("اكتب سؤالك عن القوانين هنا...")
+question = st.chat_input(ui_text("input"))
 if question:
+    if is_guest and not guest_request_allowed():
+        st.warning("تم الوصول إلى الحد المؤقت للضيف (20 سؤالًا في الدقيقة). يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.")
+        st.stop()
     filters = query_filters(question)
     intent = classify_question(question)
     legal_query = intent in {"legal_specific", "legal_clarify"}

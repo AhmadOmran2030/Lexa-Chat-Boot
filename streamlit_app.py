@@ -256,6 +256,55 @@ def is_legal_question(question: str) -> bool:
     return bool(query_filters(question)) or any(term in question for term in legal_terms)
 
 
+def needs_legal_clarification(question: str, filters: dict) -> bool:
+    vague_phrases = ("نص مادة قانونية", "مادة قانونية", "نص مادة", "هل يمكنك المساعدة", "أبحث عن نص")
+    if any(phrase in question for phrase in vague_phrases) and not filters.get("article_number") and not filters.get("law_number"):
+        return True
+    return False
+
+
+def classify_question(question: str) -> str:
+    """Let the configured LLM route the question without giving it legal data."""
+    system_prompt = """صنّف سؤال المستخدم فقط، ولا تجب عنه. أعد JSON صالحًا فقط بهذا الشكل:
+{"intent":"general"|"legal_specific"|"legal_clarify"}
+
+general: تحية، شكر، سؤال عام غير قانوني، أو محادثة عادية.
+legal_specific: سؤال قانوني يمكن البحث عنه لأنه يذكر مادة/قانونًا/موضوعًا قانونيًا واضحًا.
+legal_clarify: سؤال قانوني عام أو ناقص يحتاج اسم القانون أو رقم المادة أو تحديد الموضوع.
+لا تعتبر كلمة مساعدة وحدها سؤالًا قانونيًا محددًا."""
+    raw = ""
+    try:
+        key = _secret("GEMINI_API_KEY")
+        if key:
+            raw = call_gemini(question, system_prompt)
+        else:
+            key = _secret("OPENAI_API_KEY")
+            router_key = key or _secret("OPENROUTER_API_KEY")
+            if router_key:
+                if key:
+                    client = OpenAI(api_key=key, timeout=30)
+                    model = _secret("OPENAI_MODEL", "gpt-4o-mini")
+                else:
+                    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=router_key, timeout=30)
+                    model = _secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
+                response = client.chat.completions.create(
+                    model=model, temperature=0, max_tokens=80,
+                    messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}],
+                )
+                raw = response.choices[0].message.content or ""
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        parsed = json.loads(raw[raw.find("{"):raw.rfind("}") + 1])
+        intent = parsed.get("intent")
+        if intent in {"general", "legal_specific", "legal_clarify"}:
+            return intent
+    except Exception:
+        pass
+    # Safe fallback only when no LLM is configured or its classifier fails.
+    if is_legal_question(question):
+        return "legal_clarify" if needs_legal_clarification(question, query_filters(question)) else "legal_specific"
+    return "general"
+
+
 def ask_general_llm(question: str) -> str:
     system_prompt = "أنت مساعد عربي ودود داخل تطبيق قانوني. يمكنك الرد على التحية والشكر والأسئلة العامة باختصار ووضوح. لا تستخدم أي معلومة قانونية من خارج ملفات المستخدم؛ إذا كان السؤال قانونيًا فاطلب منه تحديد القانون أو المادة، وسيتم البحث في الملفات فقط. لا تدّع أنك محامٍ."
     gemini_key = _secret("GEMINI_API_KEY")
@@ -462,9 +511,13 @@ if not st.session_state.chat_history:
 question = st.chat_input("اكتب سؤالك عن القوانين هنا...")
 if question:
     filters = query_filters(question)
-    legal_query = is_legal_question(question)
+    intent = classify_question(question)
+    legal_query = intent in {"legal_specific", "legal_clarify"}
     with st.spinner("جاري البحث في المواد القانونية..."):
-        if legal_query:
+        if intent == "legal_clarify":
+            primary_results = []
+            answer = "أستطيع مساعدتك، لكن أحتاج تحديدًا أكثر حتى أرجع إلى المصدر الصحيح. اكتب اسم القانون ورقم المادة، أو اذكر الموضوع القانوني الذي تبحث عنه. مثال: ما نص المادة 29 من القانون المدني؟"
+        elif intent == "legal_specific":
             results = verified_search(question)
             primary_results = complete_article_result(question, results)
             if primary_results:
@@ -475,6 +528,8 @@ if question:
             primary_results = []
             answer = ask_general_llm(question)
         if legal_query:
+            if intent == "legal_clarify":
+                primary_results = []
             answer += "\n\n> **تنبيه مهني:** هذه إجابة إرشادية مبنية على الملفات المتاحة في النظام. إذا لم تحصل على إجابة كاملة، أو كان السؤال متعمقًا أو مرتبطًا بإجراء عملي، يُرجى الرجوع إلى **الشؤون القانونية** أو مستشار قانوني مختص."
     st.session_state.chat_history.append({"role": "user", "content": question})
     st.session_state.chat_history.append({"role": "assistant", "content": answer, "results": primary_results, "filters": filters})

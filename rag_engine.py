@@ -19,7 +19,7 @@ def tokens(text: str) -> list[str]:
 
 def query_filters(query: str) -> dict[str, str | int]:
     result: dict[str, str | int] = {}
-    law = re.search(r"(?:القانون|قانون|مرسوم\s+بقانون|قرار)\s*(?:رقم)?\s*([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})", query)
+    law = re.search(r"(?:القانون|قانون|مرسوم\s+بقانون|قرار)[^\n٠-٩0-9]{0,60}(?:رقم\s*)?([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})", query)
     article = re.search(r"(?:المادة|مادة)\s*([٠-٩0-9]+)", query)
     paragraph = re.search(r"(?:الفقرة|فقرة)\s*([٠-٩0-9]+)", query)
     if law:
@@ -29,6 +29,11 @@ def query_filters(query: str) -> dict[str, str | int]:
         result["article_number"] = normalize_digits(article.group(1)) or ""
     if paragraph:
         result["paragraph_number"] = int(normalize_digits(paragraph.group(1)) or 0)
+    normalized_query = query.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+    if "مدني" in normalized_query:
+        result["law_title_contains"] = "مدني"
+    elif "ادارات قانونية" in normalized_query or "إدارات قانونية" in query:
+        result["law_title_contains"] = "ادارات قانونية"
     return result
 
 
@@ -46,7 +51,10 @@ class LegalIndex:
         filters = query_filters(query)
         candidates = list(range(len(self.rows)))
         for key, value in filters.items():
-            candidates = [i for i in candidates if str(self.rows[i].get(key, "")) == str(value)]
+            if key == "law_title_contains":
+                candidates = [i for i in candidates if str(value) in str(self.rows[i].get("title", "")).replace("أ", "ا").replace("إ", "ا").replace("آ", "ا") or str(value).replace("ادارات", "الادارات") in str(self.rows[i].get("title", ""))]
+            else:
+                candidates = [i for i in candidates if str(self.rows[i].get(key, "")) == str(value)]
         if not candidates:
             candidates = list(range(len(self.rows)))
         bm = self.bm25.get_scores(tokens(query))
@@ -70,6 +78,8 @@ class LegalIndex:
                 metadata_bonus += 15.0
             if filters.get("law_number") and str(self.rows[candidate].get("law_number")) == str(filters["law_number"]):
                 metadata_bonus += 10.0
+            if filters.get("law_title_contains") and str(filters["law_title_contains"]) in str(self.rows[candidate].get("title", "")):
+                metadata_bonus += 15.0
             confidences.append(min(100.0, .65 * semantic + .25 * lexical + metadata_bonus))
         confidences = np.array(confidences, dtype=float)
         qualified = np.where(confidences >= threshold)[0]

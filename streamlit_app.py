@@ -35,7 +35,7 @@ PARSED_DIR = BASE / "parsed_laws"
 DATA_DIR.mkdir(exist_ok=True)
 PARSED_DIR.mkdir(exist_ok=True)
 
-st.set_page_config(page_title="LexGO | المستشار القانوني", page_icon="⚖️", layout="wide")
+st.set_page_config(page_title="LexGO | المستشار القانوني", page_icon="⚖️", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', sans-serif; }
@@ -73,6 +73,9 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .cover-line { position:relative; z-index:1; width:80px; height:2px; margin:1rem auto .7rem; background:linear-gradient(90deg,transparent,#e8c766,transparent); }
 .legal-cover span { position:relative; z-index:1; color:#cdb995; font-size:.78rem; }
 .admin-panel-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; text-align:center; margin:.4rem 0 .7rem; }
+.language-label { color:#cdb995; font-size:.78rem; text-align:center; margin:0 auto .35rem; }
+.language-label + div { max-width:560px; margin:0 auto .85rem; }
+.language-label + div button { border-radius:12px !important; font-size:.82rem !important; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }
@@ -83,8 +86,11 @@ div[data-testid="stFileUploader"] { border:1px dashed rgba(255,222,135,.55); bor
 button[kind="primary"] { background:linear-gradient(135deg,#d4af37,#8f6517); border:0; color:#21140d; }
 [data-testid="stChatMessage"] { border:0 !important; background:transparent !important; box-shadow:none !important; padding:0 !important; margin:0 !important; }
 [data-testid="stChatMessage"] p { line-height:2; }
-[data-testid="stChatInput"] { border:1px solid rgba(255,222,135,.42) !important; border-radius:18px !important; background:rgba(67,39,24,.34) !important; box-shadow:0 10px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
-[data-testid="stChatInput"] textarea { color:#fff7e6 !important; }
+[data-testid="stChatInput"] { border:1px solid rgba(255,222,135,.42) !important; border-radius:18px !important; background:rgba(255,255,255,.035) !important; box-shadow:0 10px 26px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(22px) saturate(135%); -webkit-backdrop-filter:blur(22px) saturate(135%); }
+[data-testid="stChatInput"] > div { background:transparent !important; }
+[data-testid="stChatInput"] textarea { color:#fff7e6 !important; background:transparent !important; }
+[data-testid="stChatInput"] textarea::placeholder { color:rgba(236,220,194,.68) !important; }
+[data-testid="stSidebarCollapseButton"] button, [data-testid="stSidebarCollapsedControl"] button { border:1px solid rgba(255,222,135,.35) !important; border-radius:10px !important; background:rgba(67,39,24,.55) !important; color:#f4d37c !important; }
 [data-testid="stExpander"] { border:0 !important; background:transparent !important; box-shadow:none !important; }
 [data-testid="stForm"] { max-width:700px; margin:1.2rem auto 0; padding:1.1rem 1.25rem .8rem; border:0 !important; background:rgba(72,42,25,.12); box-shadow:none !important; }
 [data-testid="stAlert"] { border:0 !important; border-right:3px solid rgba(212,175,55,.55); background:rgba(212,175,55,.06); box-shadow:none !important; }
@@ -172,6 +178,47 @@ current_user = st.session_state.auth_user or {"username": "guest", "role": "user
 is_admin = current_user.get("role") == "admin"
 is_guest = bool(current_user.get("guest"))
 
+LANGUAGES = {
+    "ar": {"label": "العربية", "instruction": "اكتب الإجابة باللغة العربية القانونية الواضحة."},
+    "en": {"label": "Legal English", "instruction": "Write the answer in precise, formal legal English. Preserve Arabic law titles and article numbers, and provide an English explanation when needed."},
+    "fr": {"label": "Français", "instruction": "Rédigez la réponse en français juridique formel et précis. Conservez les titres arabes des lois et les numéros des articles, et expliquez-les en français si nécessaire."},
+}
+if "response_language" not in st.session_state:
+    st.session_state.response_language = "ar"
+
+language_bar = st.container()
+with language_bar:
+    st.markdown('<div class="language-label">لغة الإجابة</div>', unsafe_allow_html=True)
+    language_buttons = st.columns(3)
+    for column, (code, language) in zip(language_buttons, LANGUAGES.items()):
+        with column:
+            if st.button(language["label"], key=f"language_{code}", use_container_width=True, type="primary" if st.session_state.response_language == code else "secondary"):
+                st.session_state.response_language = code
+                st.rerun()
+
+LOCALIZED_MESSAGES = {
+    "clarify": {
+        "ar": "أستطيع مساعدتك، لكن أحتاج تحديدًا أكثر حتى أرجع إلى المصدر الصحيح. اكتب اسم القانون ورقم المادة، أو اذكر الموضوع القانوني الذي تبحث عنه. مثال: ما نص المادة 29 من القانون المدني؟",
+        "en": "I can help, but I need more details to retrieve the correct source. Please provide the law name and article number, or specify the legal topic. Example: What is the text of Article 29 of the Civil Code?",
+        "fr": "Je peux vous aider, mais j’ai besoin de précisions pour retrouver la source correcte. Indiquez le nom de la loi et le numéro de l’article, ou précisez le sujet juridique. Exemple : quel est le texte de l’article 29 du Code civil ?",
+    },
+    "not_found": {
+        "ar": "لم أجد هذه المعلومة في الملفات القانونية المضافة. إذا كنت تقصد قانونًا أو مادة محددة، اذكر اسم القانون ورقم المادة لأبحث عنها بدقة.",
+        "en": "I could not find this information in the uploaded legal files. If you mean a specific law or article, provide its name and number so I can search accurately.",
+        "fr": "Je n’ai pas trouvé cette information dans les fichiers juridiques ajoutés. Si vous recherchez une loi ou un article précis, indiquez son nom et son numéro afin que je puisse effectuer une recherche exacte.",
+    },
+    "notice": {
+        "ar": "> **تنبيه مهني:** هذه إجابة إرشادية مبنية على الملفات المتاحة في النظام. إذا لم تحصل على إجابة كاملة، أو كان السؤال متعمقًا أو مرتبطًا بإجراء عملي، يُرجى الرجوع إلى **الشؤون القانونية** أو مستشار قانوني مختص.",
+        "en": "> **Professional notice:** This is guidance based on the files available in the system. If the answer is incomplete, highly detailed, or concerns a practical procedure, please consult your **legal affairs department** or a qualified legal adviser.",
+        "fr": "> **Avis professionnel :** Cette réponse indicative repose sur les fichiers disponibles dans le système. Si la réponse est incomplète, approfondie ou liée à une procédure pratique, veuillez consulter votre **service juridique** ou un conseiller juridique qualifié.",
+    },
+}
+
+
+def localized_message(key: str) -> str:
+    language = st.session_state.get("response_language", "ar")
+    return LOCALIZED_MESSAGES[key].get(language, LOCALIZED_MESSAGES[key]["ar"])
+
 @st.cache_data(show_spinner=False)
 def load_corpus():
     local_laws, local_rows = load_all(DATA_DIR, PARSED_DIR)
@@ -256,7 +303,8 @@ def ask_llm(question: str, results: list[dict]) -> str:
         f"[مصدر {i}] القانون رقم {r.get('law_number')} لسنة {r.get('law_year')}، المادة {r.get('article_number')}، الفقرة {r.get('paragraph_number')}، البند {r.get('clause_number')}، الصفحة {r.get('page_start')}\n{r.get('text')}"
         for i, r in enumerate(results, 1)
     )
-    system_prompt = "أنت مساعد بحث قانوني عربي. أجب من النصوص المسترجعة فقط. ابدأ بخلاصة مباشرة، ثم اشرح بنقاط قصيرة عند الحاجة، واذكر رقم القانون والسنة والمادة والفقرة والبند والصفحة. لا تستنتج معلومة غير موجودة ولا تقدم رأيًا قانونيًا شخصيًا. إذا لم تكفِ المصادر قل ذلك بوضوح."
+    selected_language = LANGUAGES.get(st.session_state.get("response_language", "ar"), LANGUAGES["ar"])
+    system_prompt = f"أنت مساعد بحث قانوني. أجب من النصوص المسترجعة فقط. ابدأ بخلاصة مباشرة، ثم اشرح بنقاط قصيرة عند الحاجة، واذكر رقم القانون والسنة والمادة والفقرة والبند والصفحة. لا تستنتج معلومة غير موجودة ولا تقدم رأيًا قانونيًا شخصيًا. إذا لم تكفِ المصادر قل ذلك بوضوح. {selected_language['instruction']}"
     user_prompt = f"السؤال: {question}\n\nالمصادر:\n{context}"
     if gemini_key:
         return call_gemini(user_prompt, system_prompt)
@@ -337,7 +385,8 @@ legal_clarify: سؤال قانوني عام أو ناقص يحتاج اسم ال
 
 
 def ask_general_llm(question: str) -> str:
-    system_prompt = "أنت مساعد عربي ودود داخل تطبيق قانوني. يمكنك الرد على التحية والشكر والأسئلة العامة باختصار ووضوح. لا تستخدم أي معلومة قانونية من خارج ملفات المستخدم؛ إذا كان السؤال قانونيًا فاطلب منه تحديد القانون أو المادة، وسيتم البحث في الملفات فقط. لا تدّع أنك محامٍ."
+    selected_language = LANGUAGES.get(st.session_state.get("response_language", "ar"), LANGUAGES["ar"])
+    system_prompt = f"أنت مساعد ودود داخل تطبيق قانوني. يمكنك الرد على التحية والشكر والأسئلة العامة باختصار ووضوح. لا تستخدم أي معلومة قانونية من خارج ملفات المستخدم؛ إذا كان السؤال قانونيًا فاطلب منه تحديد القانون أو المادة، وسيتم البحث في الملفات فقط. لا تدّع أنك محامٍ. {selected_language['instruction']}"
     gemini_key = _secret("GEMINI_API_KEY")
     openai_key = _secret("OPENAI_API_KEY")
     openrouter_key = _secret("OPENROUTER_API_KEY")
@@ -357,11 +406,12 @@ def ask_general_llm(question: str) -> str:
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": question}],
         )
         return response.choices[0].message.content or "تفضل، كيف يمكنني مساعدتك؟"
+    language = st.session_state.get("response_language", "ar")
     if any(word in question for word in ("شكرا", "شكرًا", "مشكور")):
-        return "العفو، أنا هنا لمساعدتك."
+        return {"ar": "العفو، أنا هنا لمساعدتك.", "en": "You are welcome. I am here to help.", "fr": "Je vous en prie. Je suis là pour vous aider."}.get(language, "العفو، أنا هنا لمساعدتك.")
     if any(word in question for word in ("السلام", "مرحبا", "مرحبًا", "أهلا", "أهلًا")):
-        return "وعليكم السلام ورحمة الله وبركاته. أهلًا بك، كيف يمكنني مساعدتك؟"
-    return "أهلًا بك. أضف مفتاح Gemini أو OpenAI حتى أتمكن من الإجابة عن الأسئلة العامة. وللأسئلة القانونية اذكر اسم القانون ورقم المادة."
+        return {"ar": "وعليكم السلام ورحمة الله وبركاته. أهلًا بك، كيف يمكنني مساعدتك؟", "en": "Peace be upon you as well. Welcome. How may I help you?", "fr": "Que la paix soit également sur vous. Bienvenue. Comment puis-je vous aider ?"}.get(language, "وعليكم السلام ورحمة الله وبركاته. أهلًا بك، كيف يمكنني مساعدتك؟")
+    return {"ar": "أهلًا بك. أضف مفتاح Gemini أو OpenAI حتى أتمكن من الإجابة عن الأسئلة العامة. وللأسئلة القانونية اذكر اسم القانون ورقم المادة.", "en": "Welcome. Add a Gemini or OpenAI key for general answers. For legal questions, provide the law name and article number.", "fr": "Bienvenue. Ajoutez une clé Gemini ou OpenAI pour les réponses générales. Pour les questions juridiques, indiquez le nom de la loi et le numéro de l’article."}.get(language, "أهلًا بك. أضف مفتاح Gemini أو OpenAI حتى أتمكن من الإجابة عن الأسئلة العامة. وللأسئلة القانونية اذكر اسم القانون ورقم المادة.")
 
 laws, rows = load_corpus()
 index = build_index(json.dumps(rows, ensure_ascii=False, sort_keys=True))
@@ -586,21 +636,21 @@ if question:
     with st.spinner("جاري البحث في المواد القانونية..."):
         if intent == "legal_clarify":
             primary_results = []
-            answer = "أستطيع مساعدتك، لكن أحتاج تحديدًا أكثر حتى أرجع إلى المصدر الصحيح. اكتب اسم القانون ورقم المادة، أو اذكر الموضوع القانوني الذي تبحث عنه. مثال: ما نص المادة 29 من القانون المدني؟"
+            answer = localized_message("clarify")
         elif intent == "legal_specific":
             results = verified_search(question)
             primary_results = complete_article_result(question, results)
             if primary_results:
                 answer = ask_llm(question_with_temporary_context(question), primary_results)
             else:
-                answer = "لم أجد هذه المعلومة في الملفات القانونية المضافة. إذا كنت تقصد قانونًا أو مادة محددة، اذكر اسم القانون ورقم المادة لأبحث عنها بدقة."
+                answer = localized_message("not_found")
         else:
             primary_results = []
             answer = ask_general_llm(question_with_temporary_context(question))
         if legal_query:
             if intent == "legal_clarify":
                 primary_results = []
-            answer += "\n\n> **تنبيه مهني:** هذه إجابة إرشادية مبنية على الملفات المتاحة في النظام. إذا لم تحصل على إجابة كاملة، أو كان السؤال متعمقًا أو مرتبطًا بإجراء عملي، يُرجى الرجوع إلى **الشؤون القانونية** أو مستشار قانوني مختص."
+            answer += "\n\n" + localized_message("notice")
     st.session_state.chat_history.append({"role": "user", "content": question})
     st.session_state.chat_history.append({"role": "assistant", "content": answer, "results": primary_results, "filters": filters})
     st.rerun()

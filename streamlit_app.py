@@ -220,44 +220,6 @@ LANGUAGES = {
 if "response_language" not in st.session_state:
     st.session_state.response_language = "ar"
 
-with st.container():
-    st.markdown('<div class="topbar-shell"><div class="topbar-brand">LEXGO · LEGAL CHAT</div></div>', unsafe_allow_html=True)
-    topbar_brand, topbar_language, topbar_profile, topbar_settings, topbar_privacy = st.columns([3, 1, 1.4, 1, 1])
-    with topbar_language:
-        with st.popover("🌐", help="اختيار لغة الإجابة"):
-            st.markdown("**اختر لغة الإجابة**")
-            language_choice = st.radio(
-                "اللغة",
-                options=list(LANGUAGES),
-                index=list(LANGUAGES).index(st.session_state.response_language),
-                format_func=lambda code: LANGUAGES[code]["label"],
-                label_visibility="collapsed",
-                key="language_choice",
-            )
-            if language_choice != st.session_state.response_language:
-                st.session_state.response_language = language_choice
-                st.rerun()
-    with topbar_profile:
-        with st.popover("👤 الملف الشخصي", help="بيانات المستخدم والجلسة"):
-            username = html.escape(str(current_user.get("username", "ضيف")))
-            role_label = "مدير" if is_admin else ("ضيف" if is_guest else "مستخدم")
-            initial = html.escape(username[:1] or "؟")
-            st.markdown(f'<div class="topbar-user"><span class="topbar-avatar">{initial}</span><strong>{username}</strong><br><small>الصلاحية: {role_label}</small></div>', unsafe_allow_html=True)
-            if st.button("تسجيل الخروج", key="topbar_logout", use_container_width=True):
-                st.session_state.auth_user = None
-                st.session_state.chat_history = []
-                st.rerun()
-    with topbar_settings:
-        with st.popover("⚙ الإعدادات", help="إعدادات الجلسة"):
-            st.markdown("**إعدادات الجلسة**")
-            st.caption(f"لغة الإجابة الحالية: {LANGUAGES[st.session_state.response_language]['label']}")
-            st.caption("ذاكرة المحادثة مؤقتة لهذه الجلسة فقط.")
-            st.caption("القوانين محفوظة في قاعدة البيانات الدائمة.")
-    with topbar_privacy:
-        with st.popover("الخصوصية", help="سياسة الخصوصية"):
-            st.markdown("**سياسة الخصوصية**")
-            st.markdown('<div class="privacy-copy">تُستخدم الأسئلة داخل جلسة المحادثة لتقديم الإجابة وتحسين سياق الحوار. لا تُحفظ ذاكرة الشات المؤقتة كقوانين في قاعدة البيانات. الملفات القانونية يحفظها المدير في مكتبة النظام الدائمة.</div>', unsafe_allow_html=True)
-
 LOCALIZED_MESSAGES = {
     "clarify": {
         "ar": "أستطيع مساعدتك، لكن أحتاج تحديدًا أكثر حتى أرجع إلى المصدر الصحيح. اكتب اسم القانون ورقم المادة، أو اذكر الموضوع القانوني الذي تبحث عنه. مثال: ما نص المادة 29 من القانون المدني؟",
@@ -501,95 +463,77 @@ def ask_general_llm(question: str) -> str:
 
 laws, rows = load_corpus()
 index = build_index(json.dumps(rows, ensure_ascii=False, sort_keys=True))
+api_provider = next((name for name in ("Gemini", "OpenAI", "OpenRouter") if _secret(f"{name.upper()}_API_KEY")), "")
+api_key_ready = bool(api_provider)
 
-with st.sidebar:
-    st.markdown('<div class="brand-mark"><div class="brand-icon">⚖</div><div class="brand-name">LexGO</div></div><div class="brand-sub">منصة الذكاء القانوني العربي</div>', unsafe_allow_html=True)
-    api_provider = ""
-    api_key_ready = bool(os.getenv("GEMINI_API_KEY"))
-    if api_key_ready:
-        api_provider = "Gemini"
-    if not api_key_ready:
-        try:
-            api_key_ready = bool(st.secrets.get("GEMINI_API_KEY"))
-            if api_key_ready:
-                api_provider = "Gemini"
-        except Exception:
-            pass
-    if not api_key_ready:
-        api_key_ready = bool(os.getenv("OPENAI_API_KEY"))
-        api_provider = "OpenAI" if api_key_ready else ""
-    if not api_key_ready:
-        try:
-            api_key_ready = bool(st.secrets.get("OPENAI_API_KEY"))
-            api_provider = "OpenAI" if api_key_ready else ""
-        except Exception:
-            pass
-    if not api_key_ready:
-        api_key_ready = bool(os.getenv("OPENROUTER_API_KEY"))
-        api_provider = "OpenRouter" if api_key_ready else ""
-    if not api_key_ready:
-        try:
-            api_key_ready = bool(st.secrets.get("OPENROUTER_API_KEY"))
-            api_provider = "OpenRouter" if api_key_ready else ""
-        except Exception:
-            pass
-    st.markdown(f'<div class="source-chip">● API: {api_provider + " متصل" if api_key_ready else "غير مضاف — سيعرض النصوص مباشرة"}</div>', unsafe_allow_html=True)
-    if is_admin and api_provider == "Gemini" and st.button("اختبار Gemini API", use_container_width=True):
-        with st.spinner("جاري اختبار Gemini..."):
-            gemini_test = call_gemini("اكتب كلمة: متصل", "أجب بكلمة واحدة فقط.")
-        if gemini_test.strip() == "متصل":
-            st.success("Gemini API يعمل بنجاح.")
-        else:
-            st.error(gemini_test)
-    st.markdown(f'<div class="source-chip">● التخزين: {"قاعدة بيانات دائمة" if storage_configured() else "محلي مؤقت"}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="source-chip">● ذاكرة القوانين: {"دائمة في قاعدة البيانات" if storage_configured() else "غير مفعلة"}</div>', unsafe_allow_html=True)
-    st.markdown('<div class="source-chip">● ذاكرة الشات: مؤقتة لهذه الجلسة</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="source-chip">● المستخدم: {current_user.get("username")}</div>', unsafe_allow_html=True)
-    if is_guest:
-        st.markdown('<div class="source-chip">● وضع الضيف: الشات والبحث فقط</div>', unsafe_allow_html=True)
-    if configured_users and st.button("تسجيل الخروج", use_container_width=True):
-        st.session_state.auth_user = None
-        st.session_state.chat_history = []
-        st.rerun()
-    if is_admin:
-        st.markdown("### إضافة قانون جديد")
-        if not storage_configured():
-            st.error("قاعدة البيانات الدائمة غير متصلة. تم إيقاف الرفع حتى لا يُحفظ القانون في تخزين مؤقت.")
-            st.caption("أضف SUPABASE_URL وSUPABASE_SERVICE_ROLE_KEY في Streamlit Secrets ثم أعد تشغيل التطبيق.")
-            uploaded = None
-        else:
-            st.caption("ارفع PDF أو DOC أو DOCX وسيتم تحليله وحفظه مباشرة في قاعدة البيانات.")
-            uploaded = st.file_uploader("ارفع قانونًا", type=["pdf", "doc", "docx"])
-        if uploaded is not None and storage_configured():
-            target = DATA_DIR / uploaded.name
-            incoming = uploaded.getvalue()
-            same_file = target.exists() and target.read_bytes() == incoming
-            if not same_file:
-                try:
-                    target.write_bytes(incoming)
-                    with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
-                        law, law_rows = ingest_file(target, PARSED_DIR)
-                    if storage_configured():
-                        with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
-                            save_document(law, law_rows)
-                    invalidate()
-                    st.success(f"تم الحفظ والفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
-                    st.rerun()
-                except Exception as exc:
-                    if target.exists():
-                        target.unlink()
-                    st.error(f"فشل رفع أو قراءة الملف: {exc}")
-                    st.info("تأكد أن الملف PDF يحتوي على نص أو أن ملف Word سليم.")
-            else:
-                st.info("هذا الملف محفوظ بالفعل وجاهز للبحث.")
-    else:
-        st.info("وضع المستخدم: يمكنك استخدام الشات والبحث فقط. إضافة القوانين متاحة للمدير.")
-    if is_admin:
-        st.divider()
-        st.caption("تفاصيل المكتبة متاحة من تبويب لوحة الإدارة داخل الصفحة.")
-    if st.button("مسح المحادثة", use_container_width=True):
-        st.session_state.chat_history = []
-        st.rerun()
+
+# One social-style account menu replaces the sidebar.
+with st.container():
+    st.markdown('<div class="topbar-shell"><div class="topbar-brand">LEXGO · LEGAL CHAT</div></div>', unsafe_allow_html=True)
+    menu_col = st.columns([8, 1])[1]
+    with menu_col:
+        with st.popover("👤", help="الحساب والإعدادات"):
+            username = html.escape(str(current_user.get("username", "ضيف")))
+            role_label = "مدير" if is_admin else ("ضيف" if is_guest else "مستخدم")
+            initial = html.escape(username[:1] or "؟")
+            st.markdown(f'<div class="topbar-user"><span class="topbar-avatar">{initial}</span><strong>{username}</strong><br><small>الصلاحية: {role_label}</small></div>', unsafe_allow_html=True)
+            st.divider()
+            st.markdown("**لغة الإجابة**")
+            language_choice = st.radio(
+                "اللغة",
+                options=list(LANGUAGES),
+                index=list(LANGUAGES).index(st.session_state.response_language),
+                format_func=lambda code: LANGUAGES[code]["label"],
+                label_visibility="collapsed",
+                key="language_choice",
+            )
+            if language_choice != st.session_state.response_language:
+                st.session_state.response_language = language_choice
+                st.rerun()
+            st.divider()
+            st.markdown("**الإعدادات**")
+            st.caption("ذاكرة المحادثة مؤقتة لهذه الجلسة فقط.")
+            st.caption("القوانين محفوظة في قاعدة البيانات الدائمة.")
+            st.markdown("**سياسة الخصوصية**")
+            st.markdown('<div class="privacy-copy">تُستخدم الأسئلة داخل جلسة المحادثة لتقديم الإجابة وتحسين سياق الحوار. لا تُحفظ ذاكرة الشات المؤقتة كقوانين في قاعدة البيانات. الملفات القانونية يحفظها المدير في مكتبة النظام الدائمة.</div>', unsafe_allow_html=True)
+            if is_admin:
+                st.divider()
+                st.markdown("**إدارة القوانين**")
+                st.caption("رفع الملفات متاح للمدير فقط، ويتم الحفظ في قاعدة البيانات الدائمة.")
+                if not storage_configured():
+                    st.error("قاعدة البيانات الدائمة غير متصلة. أضف إعدادات Supabase أولًا.")
+                    uploaded = None
+                else:
+                    uploaded = st.file_uploader("رفع قانون PDF أو DOC أو DOCX", type=["pdf", "doc", "docx"], key="account_law_uploader")
+                if uploaded is not None and storage_configured():
+                    target = DATA_DIR / uploaded.name
+                    incoming = uploaded.getvalue()
+                    same_file = target.exists() and target.read_bytes() == incoming
+                    if not same_file:
+                        try:
+                            target.write_bytes(incoming)
+                            with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
+                                law, law_rows = ingest_file(target, PARSED_DIR)
+                            with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
+                                save_document(law, law_rows)
+                            invalidate()
+                            st.success(f"تم الحفظ والفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
+                            st.rerun()
+                        except Exception as exc:
+                            if target.exists():
+                                target.unlink()
+                            st.error("فشل رفع أو قراءة الملف. تأكد من سلامة الملف.")
+                    else:
+                        st.info("هذا الملف محفوظ بالفعل وجاهز للبحث.")
+                st.caption(f"التخزين: {'قاعدة بيانات دائمة' if storage_configured() else 'غير متصل'}")
+                st.caption(f"API: {api_provider + ' متصل' if api_key_ready else 'غير مضاف'}")
+            if st.button("مسح المحادثة", key="account_clear_chat", use_container_width=True):
+                st.session_state.chat_history = []
+                st.rerun()
+            if st.button("تسجيل الخروج", key="account_logout", use_container_width=True):
+                st.session_state.auth_user = None
+                st.session_state.chat_history = []
+                st.rerun()
 
 st.markdown(f'<section class="legal-cover"><div class="cover-emblem">⚖</div><div class="cover-kicker">LEXGO · LEGAL CHAT</div><h1>{html.escape(ui_text("cover_title"))}</h1><p>{html.escape(ui_text("cover_sub"))}</p><div class="cover-line"></div><span>{html.escape(ui_text("cover_note"))}</span></section>', unsafe_allow_html=True)
 

@@ -65,13 +65,13 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .hero-kicker { color:#e8c766; font-weight:700; font-size:.82rem; letter-spacing:1.2px; text-transform:uppercase; margin-bottom:.5rem; }
 .hero h1 { color:#f8fafc; font-family:'Noto Kufi Arabic',sans-serif; font-size:2rem; font-weight:700; line-height:1.55; margin:0 0 .55rem; letter-spacing:-.4px; }
 .hero p { color:#e8dcca; font-size:1.02rem; margin:0; max-width:720px; }
-.legal-cover { position:relative; overflow:hidden; max-width:900px; margin:0 auto 1.25rem; padding:2.35rem 2rem 1.65rem; text-align:center; border:1px solid rgba(255,222,135,.34); border-radius:28px; background:linear-gradient(135deg,rgba(102,63,31,.48),rgba(37,21,15,.60) 55%,rgba(103,69,32,.30)); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.13); backdrop-filter:blur(22px) saturate(135%); -webkit-backdrop-filter:blur(22px) saturate(135%); }
+.legal-cover { position:relative; overflow:hidden; max-width:900px; margin:0 auto .85rem; padding:1.35rem 1.5rem 1rem; text-align:center; border:1px solid rgba(255,222,135,.34); border-radius:22px; background:linear-gradient(135deg,rgba(102,63,31,.48),rgba(37,21,15,.60) 55%,rgba(103,69,32,.30)); box-shadow:0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.13); backdrop-filter:blur(22px) saturate(135%); -webkit-backdrop-filter:blur(22px) saturate(135%); }
 .legal-cover:before, .legal-cover:after { content:""; position:absolute; width:180px; height:180px; border:1px solid rgba(232,199,102,.13); border-radius:50%; pointer-events:none; }
 .legal-cover:before { top:-105px; right:-55px; box-shadow:0 0 0 18px rgba(232,199,102,.04), 0 0 0 36px rgba(232,199,102,.025); }
 .legal-cover:after { bottom:-120px; left:-55px; box-shadow:0 0 0 18px rgba(232,199,102,.04), 0 0 0 36px rgba(232,199,102,.025); }
 .cover-emblem { position:relative; z-index:1; width:58px; height:58px; display:grid; place-items:center; margin:0 auto .85rem; border:1px solid rgba(255,231,151,.55); border-radius:18px; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:30px; box-shadow:0 12px 28px rgba(212,175,55,.28); }
 .cover-kicker { position:relative; z-index:1; color:#e8c766; font-size:.72rem; font-weight:700; letter-spacing:2px; }
-.legal-cover h1 { position:relative; z-index:1; margin:.35rem 0 .35rem; color:#fff8e8; font-family:'Noto Kufi Arabic',sans-serif; font-size:2rem; font-weight:800; }
+.legal-cover h1 { position:relative; z-index:1; margin:.25rem 0 .25rem; color:#fff8e8; font-family:'Noto Kufi Arabic',sans-serif; font-size:1.55rem; font-weight:800; }
 .legal-cover p { position:relative; z-index:1; margin:0; color:#e6d7c1; font-size:.95rem; }
 .cover-line { position:relative; z-index:1; width:80px; height:2px; margin:1rem auto .7rem; background:linear-gradient(90deg,transparent,#e8c766,transparent); }
 .legal-cover span { position:relative; z-index:1; color:#cdb995; font-size:.78rem; }
@@ -89,10 +89,24 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
 .topbar-shell button { min-height:34px !important; height:34px !important; padding:.2rem .55rem !important; border-radius:10px !important; font-size:.72rem !important; }
 .privacy-copy { color:#e6d7c1; font-size:.84rem; line-height:1.9; }
+.login-hero { max-width:640px; margin:2.5rem auto 1rem; padding:2rem 1.8rem 1.5rem; text-align:center; border:1px solid rgba(255,222,135,.30); border-radius:26px; background:linear-gradient(145deg,rgba(111,72,38,.42),rgba(42,24,17,.52)); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); }
+.login-emblem { width:62px; height:62px; display:grid; place-items:center; margin:0 auto .75rem; border-radius:20px; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:32px; box-shadow:0 12px 30px rgba(212,175,55,.28); }
+.login-hero h1 { color:#fff8e8; font-family:'Noto Kufi Arabic',sans-serif; font-size:1.75rem; margin:.35rem 0 .45rem; }
+.login-hero p { color:#e6d7c1; margin:0 auto; max-width:480px; line-height:1.9; }
+.login-value { color:#e8c766; font-size:.78rem; margin-top:.75rem; }
+.login-privacy { max-width:640px; margin:.75rem auto; color:#bcae99; text-align:center; font-size:.76rem; line-height:1.8; }
+.chat-empty { max-width:760px; margin:1.2rem auto 1.5rem; padding:1.3rem; text-align:center; border:1px solid rgba(255,222,135,.20); border-radius:20px; background:rgba(255,255,255,.035); backdrop-filter:blur(16px); }
+.chat-empty-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; margin-bottom:.45rem; }
+.suggestion-pill { display:inline-block; margin:.25rem; padding:.55rem .8rem; border:1px solid rgba(255,222,135,.22); border-radius:999px; color:#e6d7c1; background:rgba(212,175,55,.07); font-size:.78rem; }
+
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }
 .law-card { padding:1.1rem 1.25rem; border:1px solid rgba(255,222,135,.22); border-radius:16px; margin-bottom:.8rem; background:linear-gradient(135deg,rgba(101,61,32,.30),rgba(35,21,15,.28)); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); text-align:center; }
+.source-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.45rem; margin:.55rem 0 .85rem; }
+.source-field { padding:.5rem .35rem; border:1px solid rgba(255,222,135,.14); border-radius:10px; background:rgba(255,255,255,.035); text-align:center; }
+.source-field small { display:block; color:#bcae99; font-size:.68rem; }
+.source-field strong { display:block; color:#f4d37c; font-size:.82rem; margin-top:.15rem; }
 .source-chip { display:inline-block; padding:.3rem .65rem; margin:.15rem; border-radius:999px; background:rgba(212,175,55,.12); color:#f2d47c; font-size:.76rem; border:1px solid rgba(212,175,55,.22); }
 .section-title { color:#e2e8f0; font-family:'Noto Kufi Arabic',sans-serif; font-size:1.12rem; font-weight:700; margin:.7rem 0 1rem; }
 div[data-testid="stFileUploader"] { border:1px dashed rgba(255,222,135,.55); border-radius:16px; padding:.4rem; background:rgba(91,49,22,.20); box-shadow:inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
@@ -114,13 +128,16 @@ blockquote { border-right:3px solid #d4af37 !important; border-left:0 !important
 .law-card p, .law-card .legal-text { font-family:'Amiri',serif; font-size:1.12rem; line-height:2.05; }
 .source-chip { font-family:'IBM Plex Sans Arabic',sans-serif; }
 .chat-intro { max-width:900px; margin:0 auto 1.25rem; padding:.85rem 1.1rem; border:1px solid rgba(255,222,135,.16); border-radius:14px; color:#d9cbb7; background:rgba(72,42,25,.18); text-align:center; }
-.chat-row { max-width:780px; margin:1.25rem auto 2rem; text-align:center; }
-.chat-meta { display:flex; justify-content:center; align-items:center; gap:.55rem; color:#d8bb6a; font-family:'Noto Kufi Arabic',sans-serif; font-size:.76rem; font-weight:600; margin-bottom:.65rem; }
+.chat-row { max-width:860px; margin:1.05rem auto 1.45rem; text-align:right; }
+.chat-row.user { text-align:right; }
+.chat-row.assistant { text-align:left; }
+.chat-meta { display:flex; justify-content:flex-start; align-items:center; gap:.55rem; color:#d8bb6a; font-family:'Noto Kufi Arabic',sans-serif; font-size:.76rem; font-weight:600; margin-bottom:.65rem; }
 .chat-avatar { width:30px; height:30px; display:inline-grid; place-items:center; border-radius:50%; color:#28170d; background:linear-gradient(135deg,#f5d77c,#a6781f); box-shadow:0 6px 16px rgba(212,175,55,.2); }
-.chat-text { color:#f5ead8; font-size:1.02rem; line-height:2.1; padding:0 .8rem 1.15rem; border-bottom:1px solid rgba(212,175,55,.20); }
+.chat-text { display:inline-block; max-width:86%; color:#f5ead8; font-size:1.02rem; line-height:2.05; padding:.85rem 1rem; border:1px solid rgba(212,175,55,.22); border-radius:18px; background:rgba(255,255,255,.045); box-shadow:0 10px 28px rgba(0,0,0,.13), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(14px); text-align:right; }
 .chat-row.user .chat-meta { color:#b8a58d; }
 .chat-row.user .chat-avatar { background:rgba(212,175,55,.16); color:#f4d37c; box-shadow:none; }
-.chat-row.user .chat-text { color:#eadcc7; font-size:.98rem; border-bottom-color:rgba(255,255,255,.10); }
+.chat-row.user .chat-text { color:#eadcc7; font-size:.98rem; border-color:rgba(212,175,55,.18); background:rgba(91,55,30,.34); }
+.chat-row.assistant .chat-text { margin-left:0; }
 .legal-inline { margin-top:1rem; padding:.65rem .9rem; border-right:3px solid #d4af37; border-radius:10px; background:rgba(212,175,55,.08); color:#d9cbb7; font-size:.86rem; line-height:1.9; text-align:right; }
 </style>""", unsafe_allow_html=True)
 
@@ -190,7 +207,7 @@ if "auth_user" not in st.session_state:
 
 configured_users = _users()
 if not st.session_state.auth_user:
-    st.markdown('<div class="hero"><div class="hero-kicker">LEXGO SECURE ACCESS</div><h1>تسجيل الدخول إلى المستشار القانوني</h1><p>سجّل الدخول للوصول إلى مكتبة القوانين. صلاحية إضافة الملفات متاحة للمدير فقط.</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="login-hero"><div class="login-emblem">⚖</div><div class="hero-kicker">LEXGO · LEGAL CHAT</div><h1>مرحبًا بك في LexGO</h1><p>مستشارك الذكي للبحث والمحادثة داخل مكتبة التشريعات الخاصة بك.</p><div class="login-value">إجابات موثقة · خصوصية الجلسة · وصول آمن</div></div>', unsafe_allow_html=True)
     if not configured_users:
         st.warning("لم يتم إعداد مستخدمين بعد. أضف ADMIN_USERNAME وADMIN_PASSWORD في Streamlit Secrets ثم أعد تشغيل التطبيق.")
     with st.form("login_form"):
@@ -242,7 +259,7 @@ if not st.session_state.auth_user:
                     st.rerun()
                 else:
                     st.error("تعذر إنشاء الحساب حاليًا. حاول مرة أخرى.")
-    st.caption("الضيف يستطيع استخدام الشات والبحث فقط. لا يستطيع رفع الملفات أو الوصول إلى الإدارة.")
+    st.markdown('<div class="login-privacy">الدخول كضيف يتيح الشات والبحث فقط. لا يستطيع الضيف رفع الملفات أو الوصول إلى الإدارة، ولا تُحفظ ذاكرة محادثته المؤقتة كقوانين.</div>', unsafe_allow_html=True)
     st.stop()
 
 current_user = st.session_state.auth_user or {"username": "guest", "role": "user"}
@@ -699,13 +716,19 @@ for message in st.session_state.chat_history:
     if message["role"] == "assistant" and message.get("results"):
         st.markdown('<div class="section-title" style="text-align:center">المراجع القانونية</div>', unsafe_allow_html=True)
         for i, result in enumerate(message["results"][:1], 1):
-            citation = f"القانون {result.get('law_number') or '؟'} لسنة {result.get('law_year') or '؟'} — المادة {result.get('article_number') or '؟'} — الفقرة {result.get('paragraph_number') or '؟'} — البند {result.get('clause_number') or '؟'} — صـ {result.get('page_start') or '؟'}"
             with st.expander(f"المادة {result.get('article_number') or '؟'}  ·  المرجع {i}"):
-                st.markdown(f'<div class="law-card"><div class="source-chip">{citation}</div><p style="color:#e2e8f0;line-height:2;margin-top:12px;text-align:center">{result.get("text")}</p></div>', unsafe_allow_html=True)
+                st.markdown(f'''<div class="law-card"><div class="source-grid">
+                    <div class="source-field"><small>القانون</small><strong>{html.escape(str(result.get("law_number") or "؟"))}</strong></div>
+                    <div class="source-field"><small>السنة</small><strong>{html.escape(str(result.get("law_year") or "؟"))}</strong></div>
+                    <div class="source-field"><small>المادة</small><strong>{html.escape(str(result.get("article_number") or "؟"))}</strong></div>
+                    <div class="source-field"><small>الفقرة</small><strong>{html.escape(str(result.get("paragraph_number") or "؟"))}</strong></div>
+                    <div class="source-field"><small>البند</small><strong>{html.escape(str(result.get("clause_number") or "؟"))}</strong></div>
+                    <div class="source-field"><small>الصفحة</small><strong>{html.escape(str(result.get("page_start") or "؟"))}</strong></div>
+                </div><p class="legal-text">{html.escape(str(result.get("text") or ""))}</p></div>''', unsafe_allow_html=True)
                 st.caption(f"مرشحات البحث: {message.get('filters') or 'بحث عام'}")
 
 if not st.session_state.chat_history:
-    st.info("اكتب سؤالك في مربع المحادثة أسفل الصفحة، مثل: ما نص المادة 1 من القانون المدني؟")
+    st.markdown('<div class="chat-empty"><div class="chat-empty-title">كيف يمكنني مساعدتك؟</div><div style="color:#d9cbb7;font-size:.86rem;line-height:1.8">اسأل عن نص مادة، رقم قانون، فقرة أو بند داخل الملفات المرفوعة.</div><div style="margin-top:.6rem"><span class="suggestion-pill">ما نص المادة 29 من القانون المدني؟</span><span class="suggestion-pill">اعرض الفقرات والبنود داخل المادة</span><span class="suggestion-pill">هل توجد هذه المعلومة في الملفات؟</span></div></div>', unsafe_allow_html=True)
 
 question = st.chat_input(ui_text("input"))
 if question:

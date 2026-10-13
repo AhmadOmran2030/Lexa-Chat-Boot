@@ -76,9 +76,11 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .cover-line { position:relative; z-index:1; width:80px; height:2px; margin:1rem auto .7rem; background:linear-gradient(90deg,transparent,#e8c766,transparent); }
 .legal-cover span { position:relative; z-index:1; color:#cdb995; font-size:.78rem; }
 .admin-panel-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; text-align:center; margin:.4rem 0 .7rem; }
-.language-label { color:#cdb995; font-size:.78rem; text-align:center; margin:0 auto .35rem; }
-.language-label + div { max-width:390px; margin:0 auto .45rem; }
-.language-label + div button { min-height:32px !important; height:32px !important; padding:.15rem .45rem !important; border-radius:10px !important; font-size:.70rem !important; line-height:1.1 !important; }
+.language-label { color:#cdb995; font-size:.72rem; text-align:center; margin:0 auto .22rem; }
+[data-testid="stPopover"] > button { width:40px !important; min-width:40px !important; height:40px !important; min-height:40px !important; padding:0 !important; margin:0 auto !important; border:1px solid rgba(255,222,135,.42) !important; border-radius:50% !important; background:rgba(255,255,255,.06) !important; color:#f4d37c !important; font-size:1.08rem !important; box-shadow:0 8px 20px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter:blur(16px); }
+[data-testid="stPopover"] { display:flex; justify-content:center; }
+[data-testid="stPopoverBody"] { min-width:220px; border:1px solid rgba(255,222,135,.28) !important; border-radius:16px !important; background:rgba(44,26,17,.94) !important; backdrop-filter:blur(20px); }
+[data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }
@@ -213,12 +215,19 @@ if "response_language" not in st.session_state:
 language_bar = st.container()
 with language_bar:
     st.markdown('<div class="language-label">لغة الإجابة</div>', unsafe_allow_html=True)
-    language_buttons = st.columns(3)
-    for column, (code, language) in zip(language_buttons, LANGUAGES.items()):
-        with column:
-            if st.button(language["label"], key=f"language_{code}", use_container_width=True, type="primary" if st.session_state.response_language == code else "secondary"):
-                st.session_state.response_language = code
-                st.rerun()
+    with st.popover("🌐", help="اختيار لغة الإجابة"):
+        st.markdown("**اختر لغة الإجابة**")
+        language_choice = st.radio(
+            "اللغة",
+            options=list(LANGUAGES),
+            index=list(LANGUAGES).index(st.session_state.response_language),
+            format_func=lambda code: LANGUAGES[code]["label"],
+            label_visibility="collapsed",
+            key="language_choice",
+        )
+        if language_choice != st.session_state.response_language:
+            st.session_state.response_language = language_choice
+            st.rerun()
 
 LOCALIZED_MESSAGES = {
     "clarify": {

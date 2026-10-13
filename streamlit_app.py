@@ -28,7 +28,7 @@ except Exception:
     pass
 
 from ingestion import ingest_file, load_all
-from persistence import configured as storage_configured, load_rows as load_remote_rows, save_document, summarize_laws
+from persistence import configured as storage_configured, create_user as create_persisted_user, load_rows as load_remote_rows, load_users as load_persisted_users, save_document, summarize_laws
 from rag_engine import LegalIndex, query_filters
 
 load_dotenv()
@@ -136,20 +136,26 @@ def _secret(name: str, default: str = "") -> str:
 
 
 def _users() -> list[dict]:
+    users = []
     raw = _secret("USERS_JSON")
     if raw:
         try:
-            users = json.loads(raw)
-            if isinstance(users, list):
-                return users
+            parsed_users = json.loads(raw)
+            if isinstance(parsed_users, list):
+                users = parsed_users
         except json.JSONDecodeError:
             pass
     admin_user = _secret("ADMIN_USERNAME")
     admin_password_hash = _secret("ADMIN_PASSWORD_HASH")
     admin_password = _secret("ADMIN_PASSWORD")
     if admin_user and (admin_password_hash or admin_password):
-        return [{"username": admin_user, "password_hash": admin_password_hash, "password": admin_password, "role": "admin"}]
-    return []
+        users.append({"username": admin_user, "password_hash": admin_password_hash, "password": admin_password, "role": "admin"})
+    if storage_configured():
+        try:
+            users.extend(load_persisted_users())
+        except Exception:
+            pass
+    return users
 
 
 def authenticate(username: str, password: str) -> dict | None:
@@ -206,6 +212,37 @@ if not st.session_state.auth_user:
                 st.rerun()
             else:
                 st.error("اسم المستخدم أو كلمة المرور غير صحيحة.")
+    if "show_signup" not in st.session_state:
+        st.session_state.show_signup = False
+    if st.button("إنشاء حساب جديد", use_container_width=True):
+        st.session_state.show_signup = not st.session_state.show_signup
+        st.rerun()
+    if st.session_state.show_signup:
+        st.markdown('<div class="chat-intro">إنشاء الحساب متاح للمستخدم العادي فقط. صلاحية المدير تُدار من إعدادات النظام.</div>', unsafe_allow_html=True)
+        with st.form("signup_form"):
+            new_username = st.text_input("اسم المستخدم الجديد")
+            new_password = st.text_input("كلمة المرور الجديدة", type="password")
+            confirm_password = st.text_input("تأكيد كلمة المرور", type="password")
+            signup_submitted = st.form_submit_button("إنشاء الحساب", type="primary", use_container_width=True)
+            if signup_submitted:
+                clean_username = new_username.strip()
+                if not storage_configured():
+                    st.error("إنشاء الحساب يحتاج اتصال قاعدة البيانات الدائمة. أضف إعدادات Supabase أولًا.")
+                elif len(clean_username) < 3 or len(clean_username) > 40:
+                    st.error("اسم المستخدم يجب أن يكون بين 3 و40 حرفًا.")
+                elif len(new_password) < 8:
+                    st.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
+                elif new_password != confirm_password:
+                    st.error("تأكيد كلمة المرور غير مطابق.")
+                elif any(str(user.get("username", "")).casefold() == clean_username.casefold() for user in configured_users):
+                    st.error("اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.")
+                elif create_persisted_user(clean_username, hash_password(new_password), "user"):
+                    st.session_state.auth_user = {"username": clean_username, "role": "user"}
+                    st.session_state.show_signup = False
+                    st.rerun()
+                else:
+                    st.error("تعذر إنشاء الحساب حاليًا. حاول مرة أخرى.")
+    st.caption("الضيف يستطيع استخدام الشات والبحث فقط. لا يستطيع رفع الملفات أو الوصول إلى الإدارة.")
     st.stop()
 
 current_user = st.session_state.auth_user or {"username": "guest", "role": "user"}

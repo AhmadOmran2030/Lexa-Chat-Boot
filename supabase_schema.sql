@@ -20,5 +20,14 @@ create table if not exists public.legal_chunks (
 create index if not exists legal_chunks_document_id_idx on public.legal_chunks (document_id);
 create index if not exists legal_chunks_article_idx on public.legal_chunks (law_number, law_year, article_number);
 
+create table if not exists public.app_users (
+  username text primary key,
+  password_hash text not null,
+  role text not null default 'user' check (role in ('user')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists app_users_username_idx on public.app_users (username);
+
 -- The Streamlit server uses the service-role key server-side.
 -- Do not expose that key in browser code or commit it to GitHub.

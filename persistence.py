@@ -9,6 +9,7 @@ from collections import OrderedDict
 from typing import Any
 
 TABLE = "legal_chunks"
+USERS_TABLE = "app_users"
 FIELDS = (
     "chunk_id,document_id,file_name,title,law_number,law_year,status,effective_from,effective_to,"
     "article_number,paragraph_number,clause_number,page_start,page_end,text"
@@ -30,10 +31,10 @@ def configured() -> bool:
     return bool(_setting("SUPABASE_URL") and _setting("SUPABASE_SERVICE_ROLE_KEY"))
 
 
-def _request(method: str, path: str, payload: Any = None) -> Any:
+def _request(method: str, path: str, payload: Any = None, table: str = TABLE) -> Any:
     base = _setting("SUPABASE_URL").rstrip("/")
     key = _setting("SUPABASE_SERVICE_ROLE_KEY")
-    url = f"{base}/rest/v1/{TABLE}{path}"
+    url = f"{base}/rest/v1/{table}{path}"
     data = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
     headers = {
         "apikey": key,
@@ -82,6 +83,24 @@ def load_rows() -> list[dict[str, Any]]:
             break
         offset += len(batch)
     return all_rows
+
+
+def load_users() -> list[dict[str, Any]]:
+    if not configured():
+        return []
+    query = "?select=username,password_hash,role&order=username.asc"
+    return _request("GET", query, table=USERS_TABLE) or []
+
+
+def create_user(username: str, password_hash: str, role: str = "user") -> bool:
+    if not configured():
+        return False
+    payload = {"username": username, "password_hash": password_hash, "role": role}
+    try:
+        _request("POST", "", [payload], table=USERS_TABLE)
+        return True
+    except RuntimeError:
+        return False
 
 
 def summarize_laws(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -77,8 +77,8 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .legal-cover span { position:relative; z-index:1; color:#cdb995; font-size:.78rem; }
 .admin-panel-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; text-align:center; margin:.4rem 0 .7rem; }
 .language-label { color:#cdb995; font-size:.78rem; text-align:center; margin:0 auto .35rem; }
-.language-label + div { max-width:560px; margin:0 auto .85rem; }
-.language-label + div button { border-radius:12px !important; font-size:.82rem !important; }
+.language-label + div { max-width:390px; margin:0 auto .45rem; }
+.language-label + div button { min-height:32px !important; height:32px !important; padding:.15rem .45rem !important; border-radius:10px !important; font-size:.70rem !important; line-height:1.1 !important; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }

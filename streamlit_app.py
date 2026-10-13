@@ -353,6 +353,8 @@ def invalidate():
 
 def call_gemini(prompt: str, system_prompt: str = "") -> str:
     key = _secret("GEMINI_API_KEY")
+    if not key:
+        return service_error_message()
     model_name = _secret("GEMINI_MODEL", "gemini-3-flash-preview").strip()
     if model_name.startswith("models/"):
         model_name = model_name[7:]
@@ -373,8 +375,34 @@ def call_gemini(prompt: str, system_prompt: str = "") -> str:
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         if exc.code == 404:
+            # Recover silently when a configured model is retired or unavailable.
+            try:
+                models_url = "https://generativelanguage.googleapis.com/v1beta/models?key=" + urllib.parse.quote(key, safe="")
+                with urllib.request.urlopen(models_url, timeout=30) as models_response:
+                    models_data = json.loads(models_response.read().decode("utf-8"))
+                available = [
+                    item.get("name", "").replace("models/", "")
+                    for item in models_data.get("models", [])
+                    if "generateContent" in item.get("supportedGenerationMethods", [])
+                ]
+                preferred = next((name for name in ("gemini-3-flash-preview", "gemini-flash-latest", "gemini-2.5-flash") if name in available), None)
+                if preferred and preferred != model_name:
+                    retry_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(preferred, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
+                    retry_request = urllib.request.Request(retry_endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+                    with urllib.request.urlopen(retry_request, timeout=60) as response:
+                        retry_data = json.loads(response.read().decode("utf-8"))
+                    return retry_data["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception:
+                pass
             return service_error_message()
         if exc.code in {408, 429, 500, 502, 503, 504}:
+            time.sleep(1.2)
+            try:
+                with urllib.request.urlopen(request, timeout=60) as response:
+                    retry_data = json.loads(response.read().decode("utf-8"))
+                return retry_data["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception:
+                pass
             return service_error_message()
         return service_error_message()
     except (urllib.error.URLError, KeyError, IndexError, json.JSONDecodeError) as exc:

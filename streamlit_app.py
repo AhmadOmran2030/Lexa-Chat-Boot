@@ -81,6 +81,14 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopover"] { display:flex; justify-content:center; }
 [data-testid="stPopoverBody"] { min-width:220px; border:1px solid rgba(255,222,135,.28) !important; border-radius:16px !important; background:rgba(44,26,17,.94) !important; backdrop-filter:blur(20px); }
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
+.topbar-shell { max-width:980px; margin:0 auto; padding:.15rem .25rem; }
+[data-testid="stVerticalBlock"]:has(.topbar-shell) { max-width:980px; margin:0 auto .85rem; padding:.5rem .75rem; border:1px solid rgba(255,222,135,.28); border-radius:18px; background:rgba(255,255,255,.045); box-shadow:0 14px 34px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(22px) saturate(135%); -webkit-backdrop-filter:blur(22px) saturate(135%); }
+.topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-size:.88rem; font-weight:700; text-align:right; padding:.5rem .3rem; }
+.topbar-user { color:#eadcc7; font-size:.78rem; text-align:right; padding:.5rem .3rem; white-space:nowrap; }
+.topbar-user strong { color:#fff7e6; }
+.topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
+.topbar-shell button { min-height:34px !important; height:34px !important; padding:.2rem .55rem !important; border-radius:10px !important; font-size:.72rem !important; }
+.privacy-copy { color:#e6d7c1; font-size:.84rem; line-height:1.9; }
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }
@@ -212,22 +220,43 @@ LANGUAGES = {
 if "response_language" not in st.session_state:
     st.session_state.response_language = "ar"
 
-language_bar = st.container()
-with language_bar:
-    st.markdown('<div class="language-label">لغة الإجابة</div>', unsafe_allow_html=True)
-    with st.popover("🌐", help="اختيار لغة الإجابة"):
-        st.markdown("**اختر لغة الإجابة**")
-        language_choice = st.radio(
-            "اللغة",
-            options=list(LANGUAGES),
-            index=list(LANGUAGES).index(st.session_state.response_language),
-            format_func=lambda code: LANGUAGES[code]["label"],
-            label_visibility="collapsed",
-            key="language_choice",
-        )
-        if language_choice != st.session_state.response_language:
-            st.session_state.response_language = language_choice
-            st.rerun()
+with st.container():
+    st.markdown('<div class="topbar-shell"><div class="topbar-brand">LEXGO · LEGAL CHAT</div></div>', unsafe_allow_html=True)
+    topbar_brand, topbar_language, topbar_profile, topbar_settings, topbar_privacy = st.columns([3, 1, 1.4, 1, 1])
+    with topbar_language:
+        with st.popover("🌐", help="اختيار لغة الإجابة"):
+            st.markdown("**اختر لغة الإجابة**")
+            language_choice = st.radio(
+                "اللغة",
+                options=list(LANGUAGES),
+                index=list(LANGUAGES).index(st.session_state.response_language),
+                format_func=lambda code: LANGUAGES[code]["label"],
+                label_visibility="collapsed",
+                key="language_choice",
+            )
+            if language_choice != st.session_state.response_language:
+                st.session_state.response_language = language_choice
+                st.rerun()
+    with topbar_profile:
+        with st.popover("👤 الملف الشخصي", help="بيانات المستخدم والجلسة"):
+            username = html.escape(str(current_user.get("username", "ضيف")))
+            role_label = "مدير" if is_admin else ("ضيف" if is_guest else "مستخدم")
+            initial = html.escape(username[:1] or "؟")
+            st.markdown(f'<div class="topbar-user"><span class="topbar-avatar">{initial}</span><strong>{username}</strong><br><small>الصلاحية: {role_label}</small></div>', unsafe_allow_html=True)
+            if st.button("تسجيل الخروج", key="topbar_logout", use_container_width=True):
+                st.session_state.auth_user = None
+                st.session_state.chat_history = []
+                st.rerun()
+    with topbar_settings:
+        with st.popover("⚙ الإعدادات", help="إعدادات الجلسة"):
+            st.markdown("**إعدادات الجلسة**")
+            st.caption(f"لغة الإجابة الحالية: {LANGUAGES[st.session_state.response_language]['label']}")
+            st.caption("ذاكرة المحادثة مؤقتة لهذه الجلسة فقط.")
+            st.caption("القوانين محفوظة في قاعدة البيانات الدائمة.")
+    with topbar_privacy:
+        with st.popover("الخصوصية", help="سياسة الخصوصية"):
+            st.markdown("**سياسة الخصوصية**")
+            st.markdown('<div class="privacy-copy">تُستخدم الأسئلة داخل جلسة المحادثة لتقديم الإجابة وتحسين سياق الحوار. لا تُحفظ ذاكرة الشات المؤقتة كقوانين في قاعدة البيانات. الملفات القانونية يحفظها المدير في مكتبة النظام الدائمة.</div>', unsafe_allow_html=True)
 
 LOCALIZED_MESSAGES = {
     "clarify": {

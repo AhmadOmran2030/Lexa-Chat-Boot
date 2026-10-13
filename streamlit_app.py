@@ -95,6 +95,9 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .login-hero p { color:#e6d7c1; margin:0 auto; max-width:480px; line-height:1.9; }
 .login-value { color:#e8c766; font-size:.78rem; margin-top:.75rem; }
 .login-privacy { max-width:640px; margin:.75rem auto; color:#bcae99; text-align:center; font-size:.76rem; line-height:1.8; }
+.st-key-signup-action { max-width:360px; margin:.35rem auto 0; text-align:center; }
+.signup-prompt { color:#bcae99; font-size:.76rem; text-align:center; margin:.25rem 0 .35rem; }
+.st-key-signup-action button { min-height:34px !important; height:34px !important; border:1px solid rgba(255,222,135,.32) !important; border-radius:10px !important; background:rgba(255,255,255,.035) !important; color:#e8c766 !important; font-size:.78rem !important; box-shadow:none !important; }
 .chat-empty { max-width:760px; margin:1.2rem auto 1.5rem; padding:1.3rem; text-align:center; border:1px solid rgba(255,222,135,.20); border-radius:20px; background:rgba(255,255,255,.035); backdrop-filter:blur(16px); }
 .chat-empty-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; margin-bottom:.45rem; }
 .suggestion-pill { display:inline-block; margin:.25rem; padding:.55rem .8rem; border:1px solid rgba(255,222,135,.22); border-radius:999px; color:#e6d7c1; background:rgba(212,175,55,.07); font-size:.78rem; }
@@ -231,9 +234,11 @@ if not st.session_state.auth_user:
                 st.error("اسم المستخدم أو كلمة المرور غير صحيحة.")
     if "show_signup" not in st.session_state:
         st.session_state.show_signup = False
-    if st.button("إنشاء حساب جديد", use_container_width=True):
-        st.session_state.show_signup = not st.session_state.show_signup
-        st.rerun()
+    with st.container(key="signup-action"):
+        st.markdown('<div class="signup-prompt">ليس لديك حساب؟</div>', unsafe_allow_html=True)
+        if st.button("إنشاء حساب جديد", key="signup_toggle", use_container_width=True):
+            st.session_state.show_signup = not st.session_state.show_signup
+            st.rerun()
     if st.session_state.show_signup:
         st.markdown('<div class="chat-intro">إنشاء الحساب متاح للمستخدم العادي فقط. صلاحية المدير تُدار من إعدادات النظام.</div>', unsafe_allow_html=True)
         with st.form("signup_form"):

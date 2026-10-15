@@ -323,6 +323,14 @@ def ui_text(key: str) -> str:
 def service_error_message() -> str:
     return {"ar": "تعذر تشغيل خدمة الإجابة الذكية حاليًا. حاول مرة أخرى لاحقًا.", "en": "The smart answer service is currently unavailable. Please try again later.", "fr": "Le service de réponse intelligente est momentanément indisponible. Veuillez réessayer plus tard."}.get(st.session_state.get("response_language", "ar"), "تعذر تشغيل خدمة الإجابة الذكية حاليًا. حاول مرة أخرى لاحقًا.")
 
+
+def llm_failed(answer: str) -> bool:
+    return answer in {
+        "تعذر تشغيل خدمة الإجابة الذكية حاليًا. حاول مرة أخرى لاحقًا.",
+        "The smart answer service is currently unavailable. Please try again later.",
+        "Le service de réponse intelligente est momentanément indisponible. Veuillez réessayer plus tard.",
+    }
+
 @st.cache_data(show_spinner=False)
 def load_corpus():
     local_laws, local_rows = load_all(DATA_DIR, PARSED_DIR)
@@ -355,21 +363,26 @@ def call_gemini(prompt: str, system_prompt: str = "") -> str:
     key = _secret("GEMINI_API_KEY")
     if not key:
         return service_error_message()
-    model_name = _secret("GEMINI_MODEL", "gemini-3-flash-preview").strip()
+    model_name = _secret("GEMINI_MODEL", "gemini-flash-latest").strip()
     if model_name.startswith("models/"):
         model_name = model_name[7:]
     model_name = model_name.split(":", 1)[0]
-    model_name = {"gemini-2.0-flash": "gemini-3-flash-preview", "gemini-2.5-flash": "gemini-3-flash-preview", "gemini-3.8-flash": "gemini-3-flash-preview"}.get(model_name, model_name)
+    model_name = {
+        "gemini-2.0-flash": "gemini-flash-latest",
+        "gemini-2.5-flash": "gemini-flash-latest",
+        "gemini-2.5-flash-latest": "gemini-flash-latest",
+        "gemini-3.8-flash": "gemini-flash-latest",
+    }.get(model_name, model_name)
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(model_name, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
     payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]} if system_prompt else None,
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0, "maxOutputTokens": 900},
+        "generationConfig": {"temperature": 0, "maxOutputTokens": 700},
     }
     payload = {k: v for k, v in payload.items() if v is not None}
     request = urllib.request.Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=25) as response:
             data = json.loads(response.read().decode("utf-8"))
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except urllib.error.HTTPError as exc:
@@ -385,20 +398,20 @@ def call_gemini(prompt: str, system_prompt: str = "") -> str:
                     for item in models_data.get("models", [])
                     if "generateContent" in item.get("supportedGenerationMethods", [])
                 ]
-                preferred = next((name for name in ("gemini-3-flash-preview", "gemini-flash-latest", "gemini-2.5-flash") if name in available), None)
+                preferred = next((name for name in ("gemini-flash-latest", "gemini-3-flash-preview", "gemini-2.5-flash") if name in available), None)
                 if preferred and preferred != model_name:
                     retry_endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{urllib.parse.quote(preferred, safe='')}:generateContent?key={urllib.parse.quote(key, safe='')}"
                     retry_request = urllib.request.Request(retry_endpoint, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
-                    with urllib.request.urlopen(retry_request, timeout=60) as response:
+                    with urllib.request.urlopen(retry_request, timeout=25) as response:
                         retry_data = json.loads(response.read().decode("utf-8"))
                     return retry_data["candidates"][0]["content"]["parts"][0]["text"]
             except Exception:
                 pass
             return service_error_message()
         if exc.code in {408, 429, 500, 502, 503, 504}:
-            time.sleep(1.2)
+            time.sleep(.35)
             try:
-                with urllib.request.urlopen(request, timeout=60) as response:
+                with urllib.request.urlopen(request, timeout=20) as response:
                     retry_data = json.loads(response.read().decode("utf-8"))
                 return retry_data["candidates"][0]["content"]["parts"][0]["text"]
             except Exception:
@@ -410,6 +423,10 @@ def call_gemini(prompt: str, system_prompt: str = "") -> str:
 
 
 def ask_llm(question: str, results: list[dict]) -> str:
+    source_only = "\n\n".join(
+        f"**المادة {r.get('article_number')}**:\n{r.get('text')}"
+        for r in results[:3]
+    )
     def secret(name: str, default=None):
         value = os.getenv(name)
         if value:
@@ -423,7 +440,7 @@ def ask_llm(question: str, results: list[dict]) -> str:
     openai_key = secret("OPENAI_API_KEY")
     openrouter_key = secret("OPENROUTER_API_KEY")
     if not (gemini_key or openai_key or openrouter_key):
-        return "\n\n".join(f"**المادة {r.get('article_number')}**: {r.get('text')}" for r in results[:3])
+        return source_only
     context = "\n\n".join(
         f"[مصدر {i}] القانون رقم {r.get('law_number')} لسنة {r.get('law_year')}، المادة {r.get('article_number')}، الفقرة {r.get('paragraph_number')}، البند {r.get('clause_number')}، الصفحة {r.get('page_start')}\n{r.get('text')}"
         for i, r in enumerate(results, 1)
@@ -432,26 +449,28 @@ def ask_llm(question: str, results: list[dict]) -> str:
     system_prompt = f"أنت مساعد بحث قانوني. أجب من النصوص المسترجعة فقط. ابدأ بخلاصة مباشرة، ثم اشرح بنقاط قصيرة عند الحاجة، واذكر رقم القانون والسنة والمادة والفقرة والبند والصفحة. لا تستنتج معلومة غير موجودة ولا تقدم رأيًا قانونيًا شخصيًا. إذا لم تكفِ المصادر قل ذلك بوضوح. {selected_language['instruction']}"
     user_prompt = f"السؤال: {question}\n\nالمصادر:\n{context}"
     if gemini_key:
-        return call_gemini(user_prompt, system_prompt)
+        answer = call_gemini(user_prompt, system_prompt)
+        return source_only if llm_failed(answer) else answer
     if openai_key:
         model_name = secret("OPENAI_MODEL", "gpt-4o-mini")
-        client = OpenAI(api_key=openai_key, timeout=60)
+        client = OpenAI(api_key=openai_key, timeout=25)
     else:
         model_name = secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
-        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key, timeout=60)
+        client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=openrouter_key, timeout=25)
     try:
         response = client.chat.completions.create(
             model=model_name,
             temperature=0,
-            max_tokens=900,
+            max_tokens=700,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
         )
-        return response.choices[0].message.content or service_error_message()
+        answer = response.choices[0].message.content or service_error_message()
+        return source_only if llm_failed(answer) else answer
     except Exception:
-        return service_error_message()
+        return source_only
 
 
 def is_legal_question(question: str) -> bool:
@@ -476,6 +495,11 @@ def needs_legal_clarification(question: str, filters: dict) -> bool:
 
 def classify_question(question: str) -> str:
     """Let the configured LLM route the question without giving it legal data."""
+    quick_filters = query_filters(question)
+    if is_legal_question(question):
+        return "legal_clarify" if needs_legal_clarification(question, quick_filters) else "legal_specific"
+    if any(word in question.casefold() for word in ("شكرا", "شكرًا", "مشكور", "السلام", "مرحبا", "مرحبًا", "أهلا", "أهلًا", "hello", "hi", "merci", "bonjour")):
+        return "general"
     system_prompt = """صنّف سؤال المستخدم فقط، ولا تجب عنه. أعد JSON صالحًا فقط بهذا الشكل:
 {"intent":"general"|"legal_specific"|"legal_clarify"}
 
@@ -493,10 +517,10 @@ legal_clarify: سؤال قانوني عام أو ناقص يحتاج اسم ال
             router_key = key or _secret("OPENROUTER_API_KEY")
             if router_key:
                 if key:
-                    client = OpenAI(api_key=key, timeout=30)
+                    client = OpenAI(api_key=key, timeout=12)
                     model = _secret("OPENAI_MODEL", "gpt-4o-mini")
                 else:
-                    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=router_key, timeout=30)
+                    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=router_key, timeout=12)
                     model = _secret("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
                 response = client.chat.completions.create(
                     model=model, temperature=0, max_tokens=80,
@@ -597,23 +621,61 @@ with st.container():
                     incoming = uploaded.getvalue()
                     same_file = target.exists() and target.read_bytes() == incoming
                     if not same_file:
+                        write_ok = True
                         try:
                             target.write_bytes(incoming)
-                            with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
-                                law, law_rows = ingest_file(target, PARSED_DIR)
-                            with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
-                                save_document(law, law_rows)
-                            invalidate()
-                            st.success(f"تم الحفظ والفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
-                            st.rerun()
                         except Exception as exc:
+                            write_ok = False
                             if target.exists():
                                 target.unlink()
-                            st.error("فشل رفع أو قراءة الملف. تأكد من سلامة الملف.")
+                            st.error("تعذر حفظ الملف المرفوع مؤقتًا على الخادم.")
+                            with st.expander("تفاصيل التشخيص للمدير"):
+                                st.code(f"{type(exc).__name__}: {exc}")
+                        law = None
+                        law_rows = []
+                        if write_ok:
+                            try:
+                                with st.spinner("جاري قراءة الملف وتحليل القانون وفهرسته..."):
+                                    law, law_rows = ingest_file(target, PARSED_DIR)
+                            except Exception as exc:
+                                if target.exists():
+                                    target.unlink()
+                                st.error("تم رفع الملف، لكن تعذر قراءة محتواه. تأكد أنه PDF أو DOC أو DOCX سليم.")
+                                with st.expander("تفاصيل التشخيص للمدير"):
+                                    st.code(f"{type(exc).__name__}: {exc}")
+                        if law is not None:
+                            try:
+                                with st.spinner("جاري حفظ القانون في قاعدة البيانات الدائمة..."):
+                                    save_document(law, law_rows)
+                                invalidate()
+                                st.success(f"تم الحفظ والفهرسة: {law.get('article_count', 0)} مادة و{len(law_rows)} مقطع")
+                                st.rerun()
+                            except Exception as exc:
+                                if target.exists():
+                                    target.unlink()
+                                st.error("تمت قراءة الملف، لكن فشل حفظه في Supabase. راجع مفتاح service_role وصلاحيات Data API.")
+                                with st.expander("تفاصيل التشخيص للمدير"):
+                                    st.code(f"{type(exc).__name__}: {exc}")
                     else:
                         st.info("هذا الملف محفوظ بالفعل وجاهز للبحث.")
                 st.caption(f"التخزين: {'قاعدة بيانات دائمة' if storage_configured() else 'غير متصل'}")
+                if st.button("اختبار اتصال قاعدة البيانات", key="account_test_supabase", use_container_width=True):
+                    try:
+                        remote_count = len(load_remote_rows())
+                        st.success(f"اتصال Supabase يعمل. عدد المقاطع المحفوظة: {remote_count}")
+                    except Exception as exc:
+                        st.error("الاتصال موجود لكن Supabase رفض الطلب. راجع service_role key واسم الجداول.")
+                        with st.expander("تفاصيل التشخيص للمدير"):
+                            st.code(f"{type(exc).__name__}: {exc}")
                 st.caption(f"API: {api_provider + ' متصل' if api_key_ready else 'غير مضاف'}")
+                st.caption(f"نموذج Gemini: {_secret('GEMINI_MODEL', 'gemini-flash-latest')}")
+                if st.button("اختبار اتصال Gemini", key="account_test_gemini", use_container_width=True):
+                    with st.spinner("جاري اختبار Gemini..."):
+                        gemini_test = call_gemini("Reply with exactly: OK", "Reply with exactly one word: OK")
+                    if not llm_failed(gemini_test) and gemini_test.strip().upper() == "OK":
+                        st.success("اتصال Gemini يعمل.")
+                    else:
+                        st.error("تعذر اتصال Gemini. راجع GEMINI_API_KEY وGEMINI_MODEL في Secrets.")
             if st.button("مسح المحادثة", key="account_clear_chat", use_container_width=True):
                 st.session_state.chat_history = []
                 st.rerun()
@@ -769,6 +831,8 @@ if question:
         st.warning("تم الوصول إلى الحد المؤقت للضيف (20 سؤالًا في الدقيقة). يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.")
         st.stop()
     filters = query_filters(question)
+    # Source-first pipeline: retrieve from the user's indexed database before any LLM call.
+    pre_results = verified_search(question)
     intent = classify_question(question)
     legal_query = intent in {"legal_specific", "legal_clarify"}
     with st.spinner("جاري البحث في المواد القانونية..."):
@@ -776,9 +840,9 @@ if question:
             primary_results = []
             answer = localized_message("clarify")
         elif intent == "legal_specific":
-            results = verified_search(question)
-            primary_results = complete_article_result(question, results)
+            primary_results = complete_article_result(question, pre_results)
             if primary_results:
+                # Gemini receives only the retrieved legal passages and formats them simply.
                 answer = ask_llm(question_with_temporary_context(question), primary_results)
             else:
                 answer = localized_message("not_found")

@@ -17,12 +17,20 @@ FIELDS = (
 
 
 def _setting(name: str, default: str = "") -> str:
-    value = os.getenv(name)
-    if value:
-        return value
+    names = [name]
+    if name == "SUPABASE_SERVICE_ROLE_KEY":
+        names.append("SUPABASE_SECRET_KEY")
+    for candidate in names:
+        value = os.getenv(candidate)
+        if value:
+            return value
     try:
         import streamlit as st
-        return str(st.secrets.get(name, default))
+        for candidate in names:
+            value = st.secrets.get(candidate)
+            if value:
+                return str(value)
+        return default
     except Exception:
         return default
 

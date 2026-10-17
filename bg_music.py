@@ -37,7 +37,14 @@ _HTML = r"""
 <script>
 function main(CFG) {
   var P = window, D = document;
-  if (D.getElementById('lexa-music')) return;
+  var oldWrap = D.getElementById('lexa-music');
+  if (oldWrap) oldWrap.remove();
+  var oldStyle = D.getElementById('lexa-music-style');
+  if (oldStyle) oldStyle.remove();
+  var oldAudio = D.getElementById('lexa-audio');
+  if (oldAudio) { try { oldAudio.pause(); } catch (e) {} oldAudio.remove(); }
+  var oldFrame = D.getElementById('lexa-sc-frame');
+  if (oldFrame) oldFrame.remove();
 
   var BOX = 50, MARGIN = 8;
 
@@ -78,7 +85,7 @@ function main(CFG) {
     #lexa-music .lm-btn:hover{background:rgba(232,199,102,.18)}
     #lexa-music.dragging,#lexa-music.dragging .lm-btn{cursor:grabbing}
     #lexa-music .lm-panel{display:flex;align-items:center;gap:8px;max-width:0;opacity:0;
-      overflow:hidden;white-space:nowrap;transition:max-width .25s,opacity .25s,padding .25s}
+      overflow:hidden;white-space:nowrap}
     #lexa-music:hover:not(.dragging) .lm-panel,#lexa-music:focus-within:not(.dragging) .lm-panel{max-width:190px;opacity:1;padding:0 10px}
     #lexa-music .lm-range{width:100px;accent-color:#e8c766;cursor:pointer}
     #lexa-music .lm-val{font-size:12px;width:36px;text-align:center;font-variant-numeric:tabular-nums}
@@ -381,7 +388,6 @@ function main(CFG) {
 
 (function () {
   var pdoc = window.parent.document;
-  if (pdoc.getElementById('lexa-music')) return;
   var s = pdoc.createElement('script');
   // نشغّل الكود داخل الصفحة الأم حتى يبقى شغالًا بعد إعادة تحميل مكوّن Streamlit
   s.textContent = '(' + main.toString() + ')(' + JSON.stringify(__CFG__) + ');';

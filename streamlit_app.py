@@ -808,14 +808,32 @@ def complete_article_result(question: str, results: list[dict]) -> list[dict]:
         if str(row.get("document_id")) == str(top.get("document_id"))
         and str(row.get("article_number")) == str(filters["article_number"])
     ]
-    article_rows.sort(key=lambda row: (int(row.get("paragraph_number") or 0), int(row.get("clause_number") or 0)))
+    if filters.get("paragraph_number") is not None:
+        article_rows = [
+            row for row in article_rows
+            if str(row.get("paragraph_number", "")) == str(filters["paragraph_number"])
+        ]
+    if filters.get("clause_number") is not None:
+        article_rows = [
+            row for row in article_rows
+            if str(row.get("clause_number", "")) == str(filters["clause_number"])
+        ]
+    def hierarchy_sort_key(row: dict) -> tuple:
+        values = []
+        for key in ("paragraph_number", "clause_number"):
+            try:
+                values.append(int(row.get(key) or 0))
+            except (TypeError, ValueError):
+                values.append(999)
+        return tuple(values)
+    article_rows.sort(key=hierarchy_sort_key)
     if article_rows:
         merged = dict(top)
         merged["text"] = "\n\n".join(str(row.get("text", "")).strip() for row in article_rows if row.get("text"))
-        merged["paragraph_number"] = "كاملة"
-        merged["clause_number"] = "كاملة"
+        merged["paragraph_number"] = filters.get("paragraph_number", "كاملة")
+        merged["clause_number"] = filters.get("clause_number", "كاملة")
         return [merged]
-    return results[:1]
+    return []
 
 
 def format_legal_answer(answer: str, question: str, results: list[dict]) -> str:
@@ -831,7 +849,12 @@ def format_legal_answer(answer: str, question: str, results: list[dict]) -> str:
     # wording. The database text is shown verbatim, with blank lines separating
     # the indexed paragraphs/chunks for easier reading.
     full_text = re.sub(r"\n{3,}", "\n\n", full_text)
-    return f"**النص الكامل للمادة {filters['article_number']}**\n\n{full_text}"
+    hierarchy = [f"المادة {filters['article_number']}"]
+    if filters.get("paragraph_number") is not None:
+        hierarchy.append(f"الفقرة {filters['paragraph_number']}")
+    if filters.get("clause_number") is not None:
+        hierarchy.append(f"البند {filters['clause_number']}")
+    return f"**النص المطلوب: {' · '.join(hierarchy)}**\n\n{full_text}"
 
 
 def verified_search(question: str) -> list[dict]:

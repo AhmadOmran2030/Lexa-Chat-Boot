@@ -31,6 +31,7 @@ def query_filters(query: str) -> dict[str, str | int]:
     law = re.search(r"(?:القانون|قانون|مرسوم\s+بقانون|قرار)[^\n٠-٩0-9]{0,60}(?:رقم\s*)?([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})", query)
     article = re.search(r"(?:المادة|مادة)\s*(?:رقم\s*)?([٠-٩0-9]+)", query)
     paragraph = re.search(r"(?:الفقرة|فقرة)\s*(?:رقم\s*)?([٠-٩0-9]+)", query)
+    clause = re.search(r"(?:البند|بند|clause)\s*(?:رقم\s*)?([٠-٩0-9]+|[أ-ي])", query, flags=re.IGNORECASE)
     if not article:
         ordinal = re.search(r"(?:المادة|مادة)\s+(الأولى|الاولي|الاولى|أولى|اولى|الثانية|الثانيه|ثانية|الثالثة|الثالثه|الرابعة|الرابعه|الخامسة|الخامسه|السادسة|السادسه|السابعة|السابعه|الثامنة|الثامنه|التاسعة|التاسعه|العاشرة|العاشره)", query)
         if ordinal:
@@ -42,6 +43,9 @@ def query_filters(query: str) -> dict[str, str | int]:
         result["article_number"] = normalize_digits(article.group(1)) or ""
     if paragraph:
         result["paragraph_number"] = int(normalize_digits(paragraph.group(1)) or 0)
+    if clause:
+        clause_value = normalize_digits(clause.group(1)) or ""
+        result["clause_number"] = int(clause_value) if clause_value.isdigit() else clause_value
     normalized_query = query.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
     if "مدني" in normalized_query:
         result["law_title_contains"] = "مدني"
@@ -102,7 +106,7 @@ class LegalIndex:
         # because its legal wording has few lexical words in common with the
         # short question. The 70% threshold remains active for semantic-only
         # searches without an explicit article/law/paragraph filter.
-        explicit_lookup = any(filters.get(key) for key in ("article_number", "law_number", "law_year", "paragraph_number"))
+        explicit_lookup = any(filters.get(key) for key in ("article_number", "law_number", "law_year", "paragraph_number", "clause_number"))
         qualified = np.arange(len(candidates)) if explicit_lookup else np.where(confidences >= threshold)[0]
         if len(qualified) == 0:
             return []

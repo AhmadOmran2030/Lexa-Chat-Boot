@@ -11,6 +11,15 @@ from legal_parser import normalize_digits
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
+ARABIC_ORDINALS = {
+    "الأولى": "1", "الاولي": "1", "الاولى": "1", "أولى": "1", "اولى": "1",
+    "الثانية": "2", "الثانيه": "2", "ثانية": "2", "الثالثة": "3", "الثالثه": "3",
+    "الرابعة": "4", "الرابعه": "4", "الخامسة": "5", "الخامسه": "5",
+    "السادسة": "6", "السادسه": "6", "السابعة": "7", "السابعه": "7",
+    "الثامنة": "8", "الثامنه": "8", "التاسعة": "9", "التاسعه": "9",
+    "العاشرة": "10", "العاشره": "10",
+}
+
 
 def tokens(text: str) -> list[str]:
     text = normalize_digits(text or "") or ""
@@ -20,8 +29,12 @@ def tokens(text: str) -> list[str]:
 def query_filters(query: str) -> dict[str, str | int]:
     result: dict[str, str | int] = {}
     law = re.search(r"(?:القانون|قانون|مرسوم\s+بقانون|قرار)[^\n٠-٩0-9]{0,60}(?:رقم\s*)?([٠-٩0-9]+)\s*(?:لسنة|لعام|سنة)\s*([٠-٩0-9]{4})", query)
-    article = re.search(r"(?:المادة|مادة)\s*([٠-٩0-9]+)", query)
-    paragraph = re.search(r"(?:الفقرة|فقرة)\s*([٠-٩0-9]+)", query)
+    article = re.search(r"(?:المادة|مادة)\s*(?:رقم\s*)?([٠-٩0-9]+)", query)
+    paragraph = re.search(r"(?:الفقرة|فقرة)\s*(?:رقم\s*)?([٠-٩0-9]+)", query)
+    if not article:
+        ordinal = re.search(r"(?:المادة|مادة)\s+(الأولى|الاولي|الاولى|أولى|اولى|الثانية|الثانيه|ثانية|الثالثة|الثالثه|الرابعة|الرابعه|الخامسة|الخامسه|السادسة|السادسه|السابعة|السابعه|الثامنة|الثامنه|التاسعة|التاسعه|العاشرة|العاشره)", query)
+        if ordinal:
+            result["article_number"] = ARABIC_ORDINALS[ordinal.group(1)]
     if law:
         result["law_number"] = normalize_digits(law.group(1)) or ""
         result["law_year"] = int(normalize_digits(law.group(2)) or 0)
@@ -56,7 +69,9 @@ class LegalIndex:
             else:
                 candidates = [i for i in candidates if str(self.rows[i].get(key, "")) == str(value)]
         if not candidates:
-            candidates = list(range(len(self.rows)))
+            # Explicit article/law/paragraph requests must never fall back to
+            # semantically similar text from another article.
+            return []
         bm = self.bm25.get_scores(tokens(query))
         q_emb = self.model.encode([query], normalize_embeddings=True, convert_to_numpy=True)[0]
         dense = self.embeddings @ q_emb

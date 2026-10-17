@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import hmac
 import html
@@ -143,6 +144,18 @@ blockquote { border-right:3px solid #d4af37 !important; border-left:0 !important
 .chat-row.assistant .chat-text { margin-left:0; }
 .legal-inline { margin-top:1rem; padding:.65rem .9rem; border-right:3px solid #d4af37; border-radius:10px; background:rgba(212,175,55,.08); color:#d9cbb7; font-size:.86rem; line-height:1.9; text-align:right; }
 </style>""", unsafe_allow_html=True)
+
+BACKGROUND_PATH = APP_ROOT / "assets" / "legal-library-background.jpg"
+if BACKGROUND_PATH.exists():
+    background_b64 = base64.b64encode(BACKGROUND_PATH.read_bytes()).decode("ascii")
+    st.markdown(f"""<style>
+    .stApp {{
+        background-image: linear-gradient(rgba(23,14,10,.84), rgba(23,14,10,.90)), url("data:image/jpeg;base64,{background_b64}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }}
+    </style>""", unsafe_allow_html=True)
 
 
 def _secret(name: str, default: str = "") -> str:
@@ -493,6 +506,29 @@ def needs_legal_clarification(question: str, filters: dict) -> bool:
     return False
 
 
+def is_library_question(question: str) -> bool:
+    normalized = (question or "").replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+    markers = (
+        "مدرب على اي قانون", "مدرب على أي قانون", "بتعرف اي قوانين", "بتعرف أي قوانين",
+        "القوانين الموجودة", "القوانين المتاحة", "الملفات الموجودة", "المصادر الموجودة",
+        "ما هي القوانين", "ما القوانين", "ايه القوانين", "إيه القوانين",
+    )
+    return any(marker.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا") in normalized for marker in markers)
+
+
+def library_answer(available_laws: list[dict]) -> str:
+    if not available_laws:
+        return "حاليًا لا توجد قوانين مفهرسة في قاعدة البيانات. اطلب من المدير رفع ملف قانوني أولًا."
+    items = []
+    for law in available_laws:
+        title = str(law.get("title") or law.get("file_name") or "قانون غير مسمى")
+        number = law.get("law_number")
+        year = law.get("law_year")
+        reference = f"القانون رقم {number} لسنة {year}" if number and year else "بيانات الرقم والسنة غير مستخرجة بالكامل"
+        items.append(f"- **{title}** — {reference} ({law.get('article_count', 0)} مادة مفهرسة)")
+    return "أنا لا أُدرَّب مسبقًا على قوانين عامة من خارج النظام؛ أنا أبحث فقط في القوانين التي رفعها المدير وحُفظت في قاعدة البيانات.\n\nالقوانين المتاحة حاليًا:\n" + "\n".join(items) + "\n\nيمكنك أن تسأل مثلًا: ما نص المادة 1 من القانون المدني؟"
+
+
 def classify_question(question: str) -> str:
     """Let the configured LLM route the question without giving it legal data."""
     quick_filters = query_filters(question)
@@ -836,12 +872,20 @@ if question:
         st.warning("تم الوصول إلى الحد المؤقت للضيف (20 سؤالًا في الدقيقة). يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.")
         st.stop()
     filters = query_filters(question)
-    # Source-first pipeline: retrieve from the user's indexed database before any LLM call.
-    pre_results = verified_search(question)
-    intent = classify_question(question)
-    legal_query = intent in {"legal_specific", "legal_clarify"}
+    if is_library_question(question):
+        primary_results = []
+        answer = library_answer(laws)
+        legal_query = False
+        intent = "general"
+    else:
+        # Source-first pipeline: retrieve from the user's indexed database before any LLM call.
+        pre_results = verified_search(question)
+        intent = classify_question(question)
+        legal_query = intent in {"legal_specific", "legal_clarify"}
     with st.spinner("جاري البحث في المواد القانونية..."):
-        if intent == "legal_clarify":
+        if is_library_question(question):
+            pass
+        elif intent == "legal_clarify":
             primary_results = []
             answer = localized_message("clarify")
         elif intent == "legal_specific":

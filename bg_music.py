@@ -82,8 +82,15 @@ function main(CFG) {
     #lexa-music.flip{flex-direction:row-reverse}
     #lexa-music .lm-btn{width:40px;height:40px;flex:0 0 40px;border:0;border-radius:50%;background:transparent;
       color:inherit;cursor:grab;display:flex;align-items:center;justify-content:center;padding:0;touch-action:none}
-    #lexa-music .lm-btn:hover{background:rgba(232,199,102,.18)}
+    #lexa-music .lm-btn{animation:lexa-music-glow 3.2s ease-in-out infinite}
+    @keyframes lexa-music-glow{
+      0%,100%{background:rgba(232,199,102,0);box-shadow:0 0 0 0 rgba(232,199,102,0)}
+      50%{background:rgba(232,199,102,.10);box-shadow:0 0 12px 2px rgba(212,175,55,.20)}
+    }
+    #lexa-music .lm-btn:hover{background:rgba(232,199,102,.18);box-shadow:0 0 14px 3px rgba(212,175,55,.28)}
     #lexa-music.dragging,#lexa-music.dragging .lm-btn{cursor:grabbing}
+    #lexa-music.dragging .lm-btn{animation:none}
+    @media (prefers-reduced-motion: reduce){#lexa-music .lm-btn{animation:none}}
     #lexa-music .lm-panel{display:flex;align-items:center;gap:8px;max-width:0;opacity:0;
       overflow:hidden;white-space:nowrap}
     #lexa-music:hover:not(.dragging) .lm-panel,#lexa-music:focus-within:not(.dragging) .lm-panel{max-width:190px;opacity:1;padding:0 10px}

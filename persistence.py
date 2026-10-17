@@ -111,14 +111,14 @@ def document_exists(document_id: str) -> bool:
 def load_users() -> list[dict[str, Any]]:
     if not configured():
         return []
-    query = "?select=username,password_hash,role&order=username.asc"
+    query = "?select=username,password_hash,role,avatar_data&order=username.asc"
     return _request("GET", query, table=USERS_TABLE) or []
 
 
-def create_user(username: str, password_hash: str, role: str = "user") -> bool:
+def create_user(username: str, password_hash: str, role: str = "user", avatar_data: str = "emoji:⚖️") -> bool:
     if not configured():
         return False
-    payload = {"username": username, "password_hash": password_hash, "role": role}
+    payload = {"username": username, "password_hash": password_hash, "role": role, "avatar_data": avatar_data}
     try:
         _request("POST", "", [payload], table=USERS_TABLE)
         return True

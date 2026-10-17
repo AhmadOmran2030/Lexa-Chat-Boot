@@ -122,6 +122,26 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .chat-empty { max-width:760px; margin:1.2rem auto 1.5rem; padding:1.3rem; text-align:center; border:1px solid rgba(255,222,135,.20); border-radius:20px; background:rgba(255,255,255,.035); backdrop-filter:blur(16px); }
 .chat-empty-title { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-weight:700; margin-bottom:.45rem; }
 .suggestion-pill { display:inline-block; margin:.25rem; padding:.55rem .8rem; border:1px solid rgba(255,222,135,.22); border-radius:999px; color:#e6d7c1; background:rgba(212,175,55,.07); font-size:.78rem; }
+.st-key-db-suggestions button {
+  background:rgba(13,24,35,.28) !important;
+  color:#e6d7c1 !important;
+  border:1px solid rgba(232,199,102,.30) !important;
+  border-radius:14px !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035) !important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:background .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.st-key-db-suggestions button:hover {
+  background:rgba(212,175,55,.10) !important;
+  color:#f4d37c !important;
+  border-color:rgba(232,199,102,.52) !important;
+  box-shadow:0 0 14px rgba(212,175,55,.08) !important;
+}
+.st-key-db-suggestions button:focus-visible {
+  outline:2px solid rgba(232,199,102,.65) !important;
+  outline-offset:2px;
+}
 
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
@@ -1003,12 +1023,13 @@ if not st.session_state.chat_history:
             break
 
     if db_suggestions:
-        suggestion_cols = st.columns(len(db_suggestions))
-        for i, sample_question in enumerate(db_suggestions):
-            with suggestion_cols[i]:
-                if st.button(sample_question, key=f"db_suggestion_{i}", use_container_width=True):
-                    st.session_state["suggested_question"] = sample_question
-                    st.rerun()
+        with st.container(key="db-suggestions"):
+            suggestion_cols = st.columns(len(db_suggestions))
+            for i, sample_question in enumerate(db_suggestions):
+                with suggestion_cols[i]:
+                    if st.button(sample_question, key=f"db_suggestion_{i}", use_container_width=True):
+                        st.session_state["suggested_question"] = sample_question
+                        st.rerun()
     else:
         st.info("لا توجد مواد مناسبة لاقتراح أسئلة حتى الآن. يمكنك كتابة سؤالك في مربع المحادثة.")
 

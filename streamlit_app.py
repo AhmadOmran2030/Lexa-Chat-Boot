@@ -88,13 +88,19 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopover"] { display:flex; justify-content:center; }
 [data-testid="stPopoverBody"] { min-width:220px; border:1px solid rgba(255,222,135,.28) !important; border-radius:16px !important; background:rgba(44,26,17,.94) !important; backdrop-filter:blur(20px); }
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
-.topbar-shell { max-width:980px; margin:0 auto; padding:.15rem .25rem; }
-[data-testid="stVerticalBlock"]:has(.topbar-shell) { max-width:980px; margin:0 auto .85rem; padding:.5rem .75rem; border:1px solid rgba(255,222,135,.28); border-radius:18px; background:rgba(255,255,255,.045); box-shadow:0 14px 34px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(22px) saturate(135%); -webkit-backdrop-filter:blur(22px) saturate(135%); }
-.topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-size:.88rem; font-weight:700; text-align:right; padding:.5rem .3rem; }
+.topbar-shell { width:100%; margin:0; padding:.15rem .25rem; display:flex; align-items:center; min-height:38px; }
+[data-testid="stVerticalBlock"]:has(.topbar-shell) { position:sticky; top:.45rem; z-index:999; max-width:980px; width:calc(100% - 1.5rem); margin:0 auto 1.1rem; padding:.42rem .8rem; border:1px solid rgba(255,222,135,.25); border-radius:16px; background:rgba(30,22,18,.42); box-shadow:0 12px 34px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter:blur(24px) saturate(145%); -webkit-backdrop-filter:blur(24px) saturate(145%); }
+[data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="stHorizontalBlock"] { align-items:center; gap:.5rem; }
+[data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="column"] { display:flex; align-items:center; justify-content:center; }
+.topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-size:.88rem; font-weight:700; text-align:right; padding:.35rem .3rem; white-space:nowrap; letter-spacing:.2px; }
 .topbar-user { color:#eadcc7; font-size:.78rem; text-align:right; padding:.5rem .3rem; white-space:nowrap; }
 .topbar-user strong { color:#fff7e6; }
 .topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
-.topbar-shell button { min-height:34px !important; height:34px !important; padding:.2rem .55rem !important; border-radius:10px !important; font-size:.72rem !important; }
+[data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="stPopover"] > button { margin:0 !important; border-radius:12px !important; background:rgba(255,255,255,.075) !important; }
+@media (max-width:640px) {
+ [data-testid="stVerticalBlock"]:has(.topbar-shell) { width:calc(100% - .8rem); padding:.35rem .5rem; }
+ .topbar-brand { font-size:.76rem; }
+}
 .privacy-copy { color:#e6d7c1; font-size:.84rem; line-height:1.9; }
 .login-hero { max-width:640px; margin:2.5rem auto 1rem; padding:2rem 1.8rem 1.5rem; text-align:center; border:1px solid rgba(255,222,135,.30); border-radius:26px; background:linear-gradient(145deg,rgba(111,72,38,.42),rgba(42,24,17,.52)); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); }
 .login-emblem { width:62px; height:62px; display:grid; place-items:center; margin:0 auto .75rem; border-radius:20px; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:32px; box-shadow:0 12px 30px rgba(212,175,55,.28); }
@@ -639,10 +645,11 @@ api_provider = next((name for name in ("Gemini", "OpenAI", "OpenRouter") if _sec
 api_key_ready = bool(api_provider)
 
 
-# One social-style account menu replaces the sidebar.
+# Compact glass header: app identity and account menu share one row.
 with st.container():
-    st.markdown('<div class="topbar-shell"><div class="topbar-brand">LEXGO · LEGAL CHAT</div></div>', unsafe_allow_html=True)
-    menu_col = st.columns([8, 1])[1]
+    brand_col, menu_col = st.columns([8, 1], vertical_alignment="center")
+    with brand_col:
+        st.markdown('<div class="topbar-shell"><div class="topbar-brand">LEXGO · LEGAL CHAT</div></div>', unsafe_allow_html=True)
     with menu_col:
         with st.popover("👤", help="الحساب والإعدادات"):
             username = html.escape(str(current_user.get("username", "ضيف")))

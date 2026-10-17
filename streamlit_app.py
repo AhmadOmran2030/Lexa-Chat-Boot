@@ -31,6 +31,7 @@ except Exception:
 from ingestion import ingest_file, load_all
 from persistence import configured as storage_configured, create_user as create_persisted_user, document_exists as remote_document_exists, load_rows as load_remote_rows, load_users as load_persisted_users, save_document, summarize_laws
 from rag_engine import LegalIndex, query_filters
+from bg_music import add_background_music
 
 load_dotenv()
 BASE = APP_ROOT
@@ -167,6 +168,12 @@ st.markdown(f"""<style>
     }}
     header[data-testid="stHeader"], footer {{ background: transparent !important; }}
 </style>""", unsafe_allow_html=True)
+
+# موسيقى الخلفية: أيقونة سماعة عائمة (مرر الماوس لمستوى الصوت، اضغط للكتم)
+# إن لم تعمل الموسيقى بالرابط القصير، افتح المقطع في المتصفح وانسخ الرابط الكامل (soundcloud.com/artist/track)
+MUSIC_TRACK_URL = os.getenv("LEXA_MUSIC_URL", "https://on.soundcloud.com/hleSKm9KCyxZybsQVV").strip()
+if MUSIC_TRACK_URL:
+    add_background_music(MUSIC_TRACK_URL, position="bottom", side="left", volume=30, offset=96)
 
 
 def _secret(name: str, default: str = "") -> str:

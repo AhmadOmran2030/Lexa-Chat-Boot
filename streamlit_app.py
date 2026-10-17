@@ -674,6 +674,14 @@ api_key_ready = bool(api_provider)
 # Compact glass header: app identity and account menu share one row.
 with st.container(key="lexgo-topbar"):
     brand_col, menu_col = st.columns([8, 1], vertical_alignment="center")
+    with brand_col:
+        st.markdown(
+            '<div class="topbar-brand" aria-label="LEXGO">'
+            '<span class="brand-emblem">⚖</span>'
+            '<span class="brand-wordmark"><strong>LEXGO</strong><small>LEGAL ASSISTANT</small></span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
     with menu_col:
         avatar_value = str(current_user.get("avatar_data", "emoji:⚖️"))
         avatar_label = avatar_value.replace("emoji:", "") if avatar_value.startswith("emoji:") else "👤"

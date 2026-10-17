@@ -974,9 +974,47 @@ for message in st.session_state.chat_history:
                 </div><div class="source-chip">المصدر: مكتبة القوانين المحفوظة</div></div>''', unsafe_allow_html=True)
 
 if not st.session_state.chat_history:
-    st.markdown('<div class="chat-empty"><div class="chat-empty-title">كيف يمكنني مساعدتك؟</div><div style="color:#d9cbb7;font-size:.86rem;line-height:1.8">اسأل عن نص مادة، رقم قانون، فقرة أو بند داخل الملفات المرفوعة.</div><div style="margin-top:.6rem"><span class="suggestion-pill">ما نص المادة 29 من القانون المدني؟</span><span class="suggestion-pill">اعرض الفقرات والبنود داخل المادة</span><span class="suggestion-pill">هل توجد هذه المعلومة في الملفات؟</span></div></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="chat-empty"><div class="chat-empty-title">كيف يمكنني مساعدتك؟</div>'
+        '<div style="color:#d9cbb7;font-size:.86rem;line-height:1.8">'
+        'اختر سؤالًا مقترحًا من القوانين والمواد الموجودة فعلًا في قاعدة البيانات، أو اكتب سؤالك بنفسك.'
+        '</div></div>',
+        unsafe_allow_html=True,
+    )
+
+    # Build clickable examples from the actual indexed corpus, never from hard-coded law/article examples.
+    seen_suggestions = set()
+    db_suggestions = []
+    for row in rows:
+        article_no = str(row.get("article_number") or "").strip()
+        law_title = str(row.get("title") or "").strip()
+        law_number = str(row.get("law_number") or "").strip()
+        law_year = str(row.get("law_year") or "").strip()
+        if not article_no or not law_title:
+            continue
+        law_reference = law_title
+        if law_number and law_year:
+            law_reference = f"{law_title} رقم {law_number} لسنة {law_year}"
+        sample_question = f"ما نص المادة {article_no} من {law_reference}؟"
+        if sample_question not in seen_suggestions:
+            seen_suggestions.add(sample_question)
+            db_suggestions.append(sample_question)
+        if len(db_suggestions) >= 3:
+            break
+
+    if db_suggestions:
+        suggestion_cols = st.columns(len(db_suggestions))
+        for i, sample_question in enumerate(db_suggestions):
+            with suggestion_cols[i]:
+                if st.button(sample_question, key=f"db_suggestion_{i}", use_container_width=True):
+                    st.session_state["suggested_question"] = sample_question
+                    st.rerun()
+    else:
+        st.info("لا توجد مواد مناسبة لاقتراح أسئلة حتى الآن. يمكنك كتابة سؤالك في مربع المحادثة.")
 
 question = st.chat_input(ui_text("input"))
+if not question:
+    question = st.session_state.pop("suggested_question", None)
 if question:
     if is_guest and not guest_request_allowed():
         st.warning("تم الوصول إلى الحد المؤقت للضيف (20 سؤالًا في الدقيقة). يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.")

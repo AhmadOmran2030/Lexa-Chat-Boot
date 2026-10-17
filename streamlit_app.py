@@ -778,9 +778,8 @@ if is_admin:
                     if law.get("extraction", {}).get("needs_review"):
                         st.warning("يحتاج هذا القانون إلى مراجعة الحقول المستخرجة.")
     
-chat_title, new_chat = st.columns([5, 1])
-with chat_title:
-    st.markdown(f'<div class="section-title">{html.escape(ui_text("chat_title"))}</div><div class="chat-intro">{html.escape(ui_text("chat_intro"))}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-title" style="text-align:center">{html.escape(ui_text("chat_title"))}</div><div class="chat-intro">{html.escape(ui_text("chat_intro"))}</div>', unsafe_allow_html=True)
+_new_chat_left, new_chat, _new_chat_right = st.columns([2, 1, 2])
 with new_chat:
     if st.button(ui_text("new_chat"), use_container_width=True):
         st.session_state.chat_history = []

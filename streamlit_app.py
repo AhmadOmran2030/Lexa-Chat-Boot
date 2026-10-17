@@ -90,7 +90,7 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .topbar-shell { width:100%; margin:0; padding:0; display:flex; align-items:center; min-height:32px; }
 .st-key-lexgo-topbar { position:fixed !important; top:2px !important; left:18px !important; right:18px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
- .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:rtl; justify-content:space-between; }
+ .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:ltr; justify-content:space-between; }
  .st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; min-width:0; }
 .st-key-lexgo-topbar [data-testid="column"]:first-child { justify-content:flex-start; }
 .st-key-lexgo-topbar [data-testid="column"]:last-child { justify-content:flex-end; }

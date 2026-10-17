@@ -90,10 +90,15 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .topbar-shell { width:100%; margin:0; padding:0; display:flex; align-items:center; min-height:32px; }
 .st-key-lexgo-topbar { position:fixed !important; top:0 !important; left:12px !important; right:230px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:3px 10px !important; border:1px solid rgba(255,222,135,.25); border-top:0; border-radius:0 0 14px 14px; background:rgba(30,22,18,.62); box-shadow:0 8px 24px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(24px) saturate(145%); -webkit-backdrop-filter:blur(24px) saturate(145%); }
-.st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; }
-.st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; justify-content:center; }
-.topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-size:.78rem; font-weight:700; text-align:left; padding:.2rem .25rem; white-space:nowrap; letter-spacing:.2px; display:flex; align-items:center; gap:.55rem; }
-.st-key-lexgo-topbar [data-testid="stPopover"] > button { margin:0 !important; border-radius:10px !important; min-height:30px !important; height:30px !important; }
+ .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:ltr; }
+ .st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; justify-content:center; min-width:0; }
+ .topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; text-align:right; padding:.2rem .25rem; white-space:nowrap; display:flex; align-items:center; gap:.65rem; }
+.brand-emblem { display:inline-grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:1px solid rgba(255,231,151,.65); border-radius:12px; color:#29180b; background:linear-gradient(145deg,#ffe99a,#d5a63b 65%,#96651a); font-size:23px; font-weight:900; box-shadow:0 5px 16px rgba(212,175,55,.22),inset 0 1px 0 rgba(255,255,255,.65); }
+.brand-wordmark { display:flex; flex-direction:column; gap:1px; line-height:1.05; }
+.brand-wordmark strong { color:#ffe29a; font-family:'Cinzel','Georgia',serif; font-size:1.02rem; font-weight:800; letter-spacing:1.5px; text-shadow:0 1px 10px rgba(232,199,102,.15); }
+.brand-wordmark small { color:#d8c5a1; font-family:'Noto Kufi Arabic',sans-serif; font-size:.57rem; font-weight:700; letter-spacing:2.2px; }
+ .st-key-lexgo-topbar [data-testid="stPopover"] { display:flex !important; justify-content:flex-start !important; width:100%; }
+.st-key-lexgo-topbar [data-testid="stPopover"] > button { display:flex !important; align-items:center !important; justify-content:center !important; margin:0 !important; border-radius:50% !important; width:38px !important; min-width:38px !important; height:38px !important; min-height:38px !important; padding:0 !important; cursor:pointer !important; pointer-events:auto !important; }
 .topbar-user { color:#eadcc7; font-size:.78rem; text-align:right; padding:.5rem .3rem; white-space:nowrap; }
 .topbar-user strong { color:#fff7e6; }
 .topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
@@ -666,12 +671,11 @@ api_key_ready = bool(api_provider)
 
 # Compact glass header: app identity and account menu share one row.
 with st.container(key="lexgo-topbar"):
-    brand_col, menu_col = st.columns([8, 1], vertical_alignment="center")
-    with brand_col:
-        st.markdown('<div class="topbar-shell"><div class="topbar-brand"><span class="brand-emblem">⚖</span><span>LEXGO · LEGAL CHAT</span></div></div>', unsafe_allow_html=True)
+    menu_col, brand_col = st.columns([1, 8], vertical_alignment="center")
     with menu_col:
         avatar_value = str(current_user.get("avatar_data", "emoji:⚖️"))
-        with st.popover("👤", help="الملف الشخصي والإعدادات"):
+        avatar_label = avatar_value.replace("emoji:", "") if avatar_value.startswith("emoji:") else "👤"
+        with st.popover(avatar_label, help="فتح الملف الشخصي والإعدادات"):
             username = html.escape(str(current_user.get("username", "ضيف")))
             role_label = "مدير" if is_admin else ("ضيف" if is_guest else "مستخدم")
             initial = html.escape(username[:1] or "؟")

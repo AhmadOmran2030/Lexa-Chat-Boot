@@ -143,6 +143,28 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
   outline-offset:2px;
 }
 
+/* Matching transparent gold-glass styling for New Chat and the profile/settings trigger */
+.st-key-new-chat-action button,
+.st-key-lexgo-topbar [data-testid="stPopover"] > button,
+.st-key-lexgo-topbar [data-testid="stPopover"] button[kind="secondary"] {
+  background:rgba(13,24,35,.28) !important;
+  color:#e6d7c1 !important;
+  border:1px solid rgba(232,199,102,.30) !important;
+  border-radius:14px !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035) !important;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:background .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.st-key-new-chat-action button:hover,
+.st-key-lexgo-topbar [data-testid="stPopover"] > button:hover,
+.st-key-lexgo-topbar [data-testid="stPopover"] button[kind="secondary"]:hover {
+  background:rgba(212,175,55,.10) !important;
+  color:#f4d37c !important;
+  border-color:rgba(232,199,102,.52) !important;
+  box-shadow:0 0 14px rgba(212,175,55,.08) !important;
+}
+
 .metric-card { padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(255,222,135,.24); background:rgba(91,55,30,.25); box-shadow:0 10px 28px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.08); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); text-align:center; }
 .metric-label { color:#cbb998; font-size:.8rem; text-align:center; }
 .metric-value { color:#f8fafc; font-size:1.55rem; font-weight:800; margin-top:.2rem; text-align:center; }
@@ -854,11 +876,12 @@ if is_admin:
                         st.warning("يحتاج هذا القانون إلى مراجعة الحقول المستخرجة.")
     
 st.markdown(f'<div class="section-title" style="text-align:center">{html.escape(ui_text("chat_title"))}</div><div class="chat-intro">{html.escape(ui_text("chat_intro"))}</div>', unsafe_allow_html=True)
-_new_chat_left, new_chat, _new_chat_right = st.columns([2, 1, 2])
-with new_chat:
-    if st.button(ui_text("new_chat"), use_container_width=True):
-        st.session_state.chat_history = []
-        st.rerun()
+with st.container(key="new-chat-action"):
+    _new_chat_left, new_chat, _new_chat_right = st.columns([2, 1, 2])
+    with new_chat:
+        if st.button(ui_text("new_chat"), use_container_width=True):
+            st.session_state.chat_history = []
+            st.rerun()
 
 if not laws:
     st.info(ui_text("no_laws"))

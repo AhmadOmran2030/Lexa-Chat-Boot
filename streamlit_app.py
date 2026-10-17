@@ -63,7 +63,7 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stSidebar"] [data-testid="stMetricLabel"], [data-testid="stSidebar"] [data-testid="stMetricValue"] { text-align:right; }
 .stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
 .stApp > header { background: transparent !important; }
-.main .block-container { max-width: 980px; width:100%; margin:0 auto; padding: 2.5rem 1.5rem 5rem; }
+.main .block-container { max-width: 1180px; width:100%; margin:0 auto; padding: 4.8rem 1.5rem 5rem; }
 .brand-mark { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .brand-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#f4d06f,#a87519); color:#2b180b; font-size:24px; box-shadow:0 10px 28px rgba(212,175,55,.22); }
 .brand-name { font-family:'Noto Kufi Arabic',sans-serif; font-size:1.32rem; font-weight:800; color:#f8fafc; letter-spacing:-.5px; }
@@ -89,9 +89,11 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopoverBody"] { min-width:220px; border:1px solid rgba(255,222,135,.28) !important; border-radius:16px !important; background:rgba(44,26,17,.94) !important; backdrop-filter:blur(20px); }
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .topbar-shell { width:100%; margin:0; padding:0; display:flex; align-items:center; min-height:32px; }
-.st-key-lexgo-topbar { position:fixed !important; top:0 !important; left:12px !important; right:230px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:3px 10px !important; border:1px solid rgba(255,222,135,.25); border-top:0; border-radius:0 0 14px 14px; background:rgba(30,22,18,.62); box-shadow:0 8px 24px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(24px) saturate(145%); -webkit-backdrop-filter:blur(24px) saturate(145%); }
- .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:ltr; }
- .st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; justify-content:center; min-width:0; }
+.st-key-lexgo-topbar { position:fixed !important; top:2px !important; left:18px !important; right:18px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+ .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:ltr; justify-content:space-between; }
+ .st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; min-width:0; }
+.st-key-lexgo-topbar [data-testid="column"]:first-child { justify-content:flex-end; }
+.st-key-lexgo-topbar [data-testid="column"]:last-child { justify-content:flex-start; }
  .topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; text-align:right; padding:.2rem .25rem; white-space:nowrap; display:flex; align-items:center; gap:.65rem; }
 .brand-emblem { display:inline-grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:1px solid rgba(255,231,151,.65); border-radius:12px; color:#29180b; background:linear-gradient(145deg,#ffe99a,#d5a63b 65%,#96651a); font-size:23px; font-weight:900; box-shadow:0 5px 16px rgba(212,175,55,.22),inset 0 1px 0 rgba(255,255,255,.65); }
 .brand-wordmark { display:flex; flex-direction:column; gap:1px; line-height:1.05; }
@@ -104,7 +106,7 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
 [data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="stPopover"] > button { margin:0 !important; border-radius:10px !important; min-height:30px !important; height:30px !important; }
 @media (max-width:640px) {
- .st-key-lexgo-topbar { position:relative !important; top:auto !important; left:auto !important; right:auto !important; width:calc(100% - .8rem) !important; max-width:none !important; margin:0 auto .6rem !important; border-top:1px solid rgba(255,222,135,.25); border-radius:14px; }
+ .st-key-lexgo-topbar { position:fixed !important; top:2px !important; left:8px !important; right:8px !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; }
  .topbar-brand { font-size:.76rem; }
 }
 .privacy-copy { color:#e6d7c1; font-size:.84rem; line-height:1.9; }
@@ -788,7 +790,7 @@ with st.container(key="lexgo-topbar"):
                 st.session_state.chat_history = []
                 st.rerun()
 
-st.markdown(f'<section class="legal-cover"><div class="cover-emblem">⚖</div><div class="cover-kicker">LEXGO · LEGAL CHAT</div><h1>{html.escape(ui_text("cover_title"))}</h1><p>{html.escape(ui_text("cover_sub"))}</p><div class="cover-line"></div><span>{html.escape(ui_text("cover_note"))}</span></section>', unsafe_allow_html=True)
+# Removed the redundant centered brand card; identity is displayed in the top header.
 
 if is_admin:
     admin_tab = st.tabs(["لوحة الإدارة"])[0]

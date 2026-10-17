@@ -96,7 +96,7 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .st-key-lexgo-topbar [data-testid="column"]:last-child { justify-content:flex-end; }
  .topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; text-align:right; padding:.2rem .25rem; white-space:nowrap; display:flex; align-items:center; gap:.65rem; }
 .brand-emblem { display:inline-grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:1px solid rgba(255,231,151,.65); border-radius:12px; color:#29180b; background:linear-gradient(145deg,#ffe99a,#d5a63b 65%,#96651a); font-size:23px; font-weight:900; box-shadow:0 5px 16px rgba(212,175,55,.22),inset 0 1px 0 rgba(255,255,255,.65); }
-.brand-wordmark { display:flex; flex-direction:column; gap:1px; line-height:1.05; }
+.brand-wordmark { display:flex; flex-direction:column; align-items:center; text-align:center; gap:1px; line-height:1.05; }
 .brand-wordmark strong { color:#ffe29a; font-family:'Cinzel','Georgia',serif; font-size:1.02rem; font-weight:800; letter-spacing:1.5px; text-shadow:0 1px 10px rgba(232,199,102,.15); }
 .brand-wordmark small { color:#d8c5a1; font-family:'Noto Kufi Arabic',sans-serif; font-size:.57rem; font-weight:700; letter-spacing:2.2px; }
  .st-key-lexgo-topbar [data-testid="stPopover"] { display:flex !important; justify-content:flex-start !important; width:100%; }

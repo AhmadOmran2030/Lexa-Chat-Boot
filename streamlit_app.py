@@ -89,16 +89,17 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopoverBody"] { min-width:220px; border:1px solid rgba(255,222,135,.28) !important; border-radius:16px !important; background:rgba(44,26,17,.94) !important; backdrop-filter:blur(20px); }
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .topbar-shell { width:100%; margin:0; padding:0; display:flex; align-items:center; min-height:32px; }
-[data-testid="stVerticalBlock"]:has(.topbar-shell) { position:relative !important; top:auto !important; right:auto !important; z-index:2 !important; width:100% !important; max-width:980px !important; margin:0 auto .8rem !important; padding:.35rem .6rem !important; border:1px solid rgba(255,222,135,.25); border-radius:14px; background:rgba(30,22,18,.32); box-shadow:0 8px 24px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(18px) saturate(125%); -webkit-backdrop-filter:blur(18px) saturate(125%); }
-[data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; }
-[data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="column"] { display:flex; align-items:center; justify-content:center; }
+.st-key-lexgo-topbar { position:fixed !important; top:0 !important; right:245px !important; z-index:1001 !important; width:330px !important; max-width:calc(100vw - 270px) !important; margin:0 !important; padding:3px 8px !important; border:1px solid rgba(255,222,135,.25); border-top:0; border-radius:0 0 14px 14px; background:rgba(30,22,18,.62); box-shadow:0 8px 24px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.10); backdrop-filter:blur(24px) saturate(145%); -webkit-backdrop-filter:blur(24px) saturate(145%); }
+.st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; }
+.st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; justify-content:center; }
 .topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; font-size:.78rem; font-weight:700; text-align:right; padding:.2rem .25rem; white-space:nowrap; letter-spacing:.2px; }
+.st-key-lexgo-topbar [data-testid="stPopover"] > button { margin:0 !important; border-radius:10px !important; min-height:30px !important; height:30px !important; }
 .topbar-user { color:#eadcc7; font-size:.78rem; text-align:right; padding:.5rem .3rem; white-space:nowrap; }
 .topbar-user strong { color:#fff7e6; }
 .topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
 [data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="stPopover"] > button { margin:0 !important; border-radius:10px !important; min-height:30px !important; height:30px !important; }
 @media (max-width:640px) {
- [data-testid="stVerticalBlock"]:has(.topbar-shell) { width:calc(100% - .8rem) !important; max-width:none !important; margin:0 auto .6rem !important; }
+ .st-key-lexgo-topbar { position:relative !important; top:auto !important; right:auto !important; width:calc(100% - .8rem) !important; max-width:none !important; margin:0 auto .6rem !important; border-top:1px solid rgba(255,222,135,.25); border-radius:14px; }
  .topbar-brand { font-size:.76rem; }
 }
 .privacy-copy { color:#e6d7c1; font-size:.84rem; line-height:1.9; }
@@ -646,7 +647,7 @@ api_key_ready = bool(api_provider)
 
 
 # Compact glass header: app identity and account menu share one row.
-with st.container():
+with st.container(key="lexgo-topbar"):
     brand_col, menu_col = st.columns([8, 1], vertical_alignment="center")
     with brand_col:
         st.markdown('<div class="topbar-shell"><div class="topbar-brand">LEXGO · LEGAL CHAT</div></div>', unsafe_allow_html=True)

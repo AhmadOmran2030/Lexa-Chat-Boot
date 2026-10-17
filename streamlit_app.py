@@ -45,7 +45,7 @@ st.markdown("""<style>
 html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', sans-serif; }
 header[data-testid="stHeader"], header[data-testid="stHeader"] > div, [data-testid="stToolbar"], [data-testid="stDecoration"] { background: transparent !important; background-color: transparent !important; box-shadow: none !important; border: 0 !important; }
 header[data-testid="stHeader"] { height: 3.5rem !important; }
-footer, footer::before, [data-testid="stStatusWidget"], [data-testid="stBottomBlockContainer"] { background: transparent !important; background-color: transparent !important; box-shadow: none !important; border: 0 !important; }
+footer, footer::before, [data-testid="stStatusWidget"], [data-testid="stBottom"], [data-testid="stBottomBlockContainer"], [data-testid="stBottomBlockContainer"] > div, [data-testid="stBottomBlockContainer"]::before, [data-testid="stBottomBlockContainer"]::after { background: transparent !important; background-color: transparent !important; box-shadow: none !important; border: 0 !important; }
 #MainMenu { background: transparent !important; }
 [data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,rgba(33,20,15,.72) 0%,rgba(47,29,20,.58) 100%); border-left: 1px solid rgba(212,175,55,.22); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width: min(350px, 88vw) !important; }

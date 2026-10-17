@@ -259,8 +259,21 @@ function main(CFG) {
   });
 
   btn.addEventListener('click', function () {
-    if (suppressClick) return;                 // كان سحبًا وليس ضغطة
-    if (firstIconStart) { firstIconStart = false; return; }  // أول ضغطة تبدأ التشغيل فقط
+    if (suppressClick) return; // كان سحبًا وليس ضغطة
+
+    // أول ضغطة على السماعة تطلب التشغيل. حاول داخل حدث المستخدم نفسه
+    // لأن المتصفحات قد تمنع التشغيل إذا بدأ من callback غير مرتبط بضغطة.
+    if (firstIconStart) {
+      firstIconStart = false;
+      wantPlay = true;
+      if (ready) {
+        tryPlay();
+      } else {
+        showPop('المشغل لسه بيحمّل. انتظر لحظات واضغط على السماعة مرة أخرى.');
+      }
+      return;
+    }
+
     muted = !muted;
     if (!muted && vol < 5) vol = CFG.volume;
     save('lexa_music_vol', vol);
@@ -289,7 +302,9 @@ function main(CFG) {
     };
     ready = true;
     apply();
-    if (wantPlay) tryPlay();
+    if (wantPlay && !playing) {
+      showPop('المشغل جاهز. اضغط على السماعة لبدء الموسيقى.');
+    }
   }
 
   function initSoundCloud() {
@@ -298,7 +313,7 @@ function main(CFG) {
     }
     var frame = D.createElement('iframe');
     frame.id = 'lexa-sc-frame';
-    frame.allow = 'autoplay';
+    frame.allow = 'autoplay; encrypted-media';
     frame.src = 'https://w.soundcloud.com/player/?url=' + encodeURIComponent(CFG.src) +
       '&auto_play=false&hide_related=true&show_comments=false&show_user=false' +
       '&show_reposts=false&show_teaser=false&visual=false';
@@ -318,7 +333,11 @@ function main(CFG) {
         ready = true;
         log('soundcloud widget ready');
         apply();
-        if (wantPlay) tryPlay();
+        // لا نبدأ التشغيل تلقائيًا من READY؛ بعض المتصفحات تعتبره خارج
+        // تفاعل المستخدم. اطلب من المستخدم الضغط مرة أخرى بعد اكتمال التحميل.
+        if (wantPlay && !playing) {
+          showPop('المشغل جاهز. اضغط على السماعة لبدء الموسيقى.');
+        }
       });
       w.bind(P.SC.Widget.Events.PLAY, onPlaying);
       w.bind(P.SC.Widget.Events.ERROR, function () { fail('خطأ من SoundCloud أثناء التشغيل.'); });

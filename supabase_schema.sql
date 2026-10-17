@@ -24,6 +24,7 @@ create table if not exists public.app_users (
   username text primary key,
   password_hash text not null,
   role text not null default 'user' check (role in ('user')),
+  avatar_data text not null default 'emoji:⚖️',
   created_at timestamptz not null default now()
 );
 
@@ -31,3 +32,6 @@ create index if not exists app_users_username_idx on public.app_users (username)
 
 -- The Streamlit server uses the service-role key server-side.
 -- Do not expose that key in browser code or commit it to GitHub.
+
+-- Upgrade existing deployments without dropping existing accounts.
+alter table public.app_users add column if not exists avatar_data text not null default 'emoji:⚖️';

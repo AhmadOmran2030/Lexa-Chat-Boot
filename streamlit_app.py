@@ -89,7 +89,10 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopoverBody"] { min-width:220px; border:1px solid rgba(255,222,135,.28) !important; border-radius:16px !important; background:rgba(44,26,17,.94) !important; backdrop-filter:blur(20px); }
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .topbar-shell { width:100%; margin:0; padding:0; display:flex; align-items:center; min-height:32px; }
-.st-key-lexgo-topbar { position:fixed !important; top:2px !important; left:18px !important; right:156px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+.st-key-lexgo-topbar { position:fixed !important; top:48px !important; left:18px !important; right:18px !important; z-index:99999 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; pointer-events:auto !important; }
+.st-key-lexgo-topbar [data-testid="stPopover"],
+.st-key-lexgo-topbar [data-testid="stPopover"] > button,
+.st-key-lexgo-topbar [data-testid="stPopover"] button { position:relative !important; z-index:100000 !important; pointer-events:auto !important; }
  .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:ltr; justify-content:space-between; }
  .st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; min-width:0; }
 .st-key-lexgo-topbar [data-testid="column"]:first-child { justify-content:flex-start; }
@@ -106,7 +109,7 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 .topbar-avatar { display:inline-grid; place-items:center; width:28px; height:28px; margin-left:.35rem; border-radius:50%; color:#2b180b; background:linear-gradient(135deg,#f6d978,#ad7b20); font-size:.75rem; font-weight:800; vertical-align:middle; }
 [data-testid="stVerticalBlock"]:has(.topbar-shell) [data-testid="stPopover"] > button { margin:0 !important; border-radius:10px !important; min-height:30px !important; height:30px !important; }
 @media (max-width:640px) {
- .st-key-lexgo-topbar { position:fixed !important; top:44px !important; left:8px !important; right:8px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; }
+ .st-key-lexgo-topbar { position:fixed !important; top:48px !important; left:8px !important; right:8px !important; z-index:99999 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; pointer-events:auto !important; }
  .topbar-brand { font-size:.76rem; }
 }
 .privacy-copy { color:#e6d7c1; font-size:.84rem; line-height:1.9; }

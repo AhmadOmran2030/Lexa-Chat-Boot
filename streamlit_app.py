@@ -171,7 +171,7 @@ st.markdown(f"""<style>
 
 # موسيقى الخلفية: أيقونة سماعة عائمة (مرر الماوس لمستوى الصوت، اضغط للكتم)
 # إن لم تعمل الموسيقى بالرابط القصير، افتح المقطع في المتصفح وانسخ الرابط الكامل (soundcloud.com/artist/track)
-MUSIC_TRACK_URL = os.getenv("LEXA_MUSIC_URL", "https://on.soundcloud.com/hleSKm9KCyxZybsQVV").strip()
+MUSIC_TRACK_URL = os.getenv("LEXA_MUSIC_URL", "https://soundcloud.com/hossam-sukar/omar-khairat-the-case-of-am").strip()
 if MUSIC_TRACK_URL:
     add_background_music(MUSIC_TRACK_URL, position="bottom", side="left", volume=30, offset=96)
 

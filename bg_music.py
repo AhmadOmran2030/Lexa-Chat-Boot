@@ -52,9 +52,10 @@ function main(CFG) {
   function vw() { return P.innerWidth || D.documentElement.clientWidth || 1024; }
   function vh() { return P.innerHeight || D.documentElement.clientHeight || 768; }
 
-  // مستوى الصوت يُحفظ، أما الكتم فلا يُحفظ حتى لا تبدأ الصفحة صامتة بالخطأ
-  var vol = Number(load('lexa_music_vol', CFG.volume));
-  if (!(vol >= 5 && vol <= 100)) vol = CFG.volume;
+  // يبدأ الصوت دائمًا بالمستوى الافتراضي المحدد من التطبيق (30%) عند تحميل الصفحة.
+  // يمكن للمستخدم تغيير المستوى أثناء الجلسة من شريط الصوت.
+  var vol = Math.max(0, Math.min(100, Number(CFG.volume) || 30));
+  save('lexa_music_vol', vol);
   var muted = false;
   try { P.localStorage.removeItem('lexa_music_muted'); } catch (e) {}
 

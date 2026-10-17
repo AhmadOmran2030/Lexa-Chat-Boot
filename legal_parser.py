@@ -155,7 +155,9 @@ def flatten_law(law: dict[str, Any], document_id: str) -> list[dict[str, Any]]:
                 if not text.strip():
                     continue
                 rows.append({
-                    "chunk_id": f"{document_id}_a{article['article_number']}_p{p_num or p_idx}_c{c_num or c_idx}",
+                    # OCR and loosely formatted laws can repeat paragraph/clause
+                    # labels. The primary key must remain unique for every chunk.
+                    "chunk_id": f"{document_id}_chunk_{len(rows) + 1}",
                     "document_id": document_id,
                     "title": law.get("title"),
                     "law_number": law.get("law_number"),

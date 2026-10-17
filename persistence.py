@@ -68,9 +68,15 @@ def save_document(law: dict[str, Any], rows: list[dict[str, Any]]) -> None:
     _request("DELETE", f"?document_id=eq.{encoded_id}")
     file_name = law.get("file_name", law.get("source_path", ""))
     prepared = []
+    seen_ids: dict[str, int] = {}
     for row in rows:
         item = {key: row.get(key) for key in FIELDS.split(",")}
         item["file_name"] = file_name
+        original_id = str(item.get("chunk_id") or "chunk")
+        occurrence = seen_ids.get(original_id, 0)
+        seen_ids[original_id] = occurrence + 1
+        if occurrence:
+            item["chunk_id"] = f"{original_id}_dup_{occurrence + 1}"
         prepared.append(item)
     for start in range(0, len(prepared), 100):
         batch = prepared[start:start + 100]
@@ -91,6 +97,15 @@ def load_rows() -> list[dict[str, Any]]:
             break
         offset += len(batch)
     return all_rows
+
+
+def document_exists(document_id: str) -> bool:
+    """Check whether a document fingerprint is already stored remotely."""
+    if not configured() or not document_id:
+        return False
+    encoded_id = urllib.parse.quote(str(document_id), safe="")
+    query = f"?select=document_id&document_id=eq.{encoded_id}&limit=1"
+    return bool(_request("GET", query) or [])
 
 
 def load_users() -> list[dict[str, Any]]:

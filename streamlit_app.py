@@ -28,7 +28,7 @@ except Exception:
     pass
 
 from ingestion import ingest_file, load_all
-from persistence import configured as storage_configured, create_user as create_persisted_user, load_rows as load_remote_rows, load_users as load_persisted_users, save_document, summarize_laws
+from persistence import configured as storage_configured, create_user as create_persisted_user, document_exists as remote_document_exists, load_rows as load_remote_rows, load_users as load_persisted_users, save_document, summarize_laws
 from rag_engine import LegalIndex, query_filters
 
 load_dotenv()
@@ -619,8 +619,15 @@ with st.container():
                 if uploaded is not None and storage_configured():
                     target = DATA_DIR / uploaded.name
                     incoming = uploaded.getvalue()
+                    document_id = "doc_" + hashlib.sha256(incoming).hexdigest()[:16]
                     same_file = target.exists() and target.read_bytes() == incoming
-                    if not same_file:
+                    try:
+                        already_stored = remote_document_exists(document_id)
+                    except Exception:
+                        already_stored = False
+                    if same_file or already_stored:
+                        st.info("هذا الملف محفوظ بالفعل في مكتبة القوانين وجاهز للبحث. لم تتم إضافته مرة أخرى.")
+                    else:
                         write_ok = True
                         try:
                             target.write_bytes(incoming)
@@ -656,8 +663,6 @@ with st.container():
                                 st.error("تمت قراءة الملف، لكن فشل حفظه في Supabase. راجع مفتاح service_role وصلاحيات Data API.")
                                 with st.expander("تفاصيل التشخيص للمدير"):
                                     st.code(f"{type(exc).__name__}: {exc}")
-                    else:
-                        st.info("هذا الملف محفوظ بالفعل وجاهز للبحث.")
                 st.caption(f"التخزين: {'قاعدة بيانات دائمة' if storage_configured() else 'غير متصل'}")
                 if st.button("اختبار اتصال قاعدة البيانات", key="account_test_supabase", use_container_width=True):
                     try:

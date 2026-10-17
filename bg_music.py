@@ -73,10 +73,18 @@ function main(CFG) {
       box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:system-ui,sans-serif;
       -webkit-user-select:none;user-select:none}
     #lexa-music.flip{flex-direction:row-reverse}
-    #lexa-music .lm-btn{width:40px;height:40px;flex:0 0 40px;border:0;border-radius:50%;background:transparent;
-      color:inherit;cursor:grab;display:flex;align-items:center;justify-content:center;padding:0;touch-action:none}
-    #lexa-music .lm-btn:hover{background:rgba(232,199,102,.18)}
+    #lexa-music .lm-btn{position:relative;width:40px;height:40px;flex:0 0 40px;border:0;border-radius:50%;background:transparent;
+      color:inherit;cursor:grab;display:flex;align-items:center;justify-content:center;padding:0;touch-action:none;
+      animation:lm-float 3.2s ease-in-out infinite;transition:background .25s,filter .25s}
+    #lexa-music .lm-btn::after{content:"";position:absolute;inset:-3px;border:1px solid rgba(232,199,102,.5);
+      border-radius:50%;pointer-events:none;animation:lm-halo 3.2s ease-in-out infinite}
+    #lexa-music .lm-btn:hover{background:rgba(232,199,102,.18);filter:drop-shadow(0 0 7px rgba(232,199,102,.48))}
     #lexa-music.dragging,#lexa-music.dragging .lm-btn{cursor:grabbing}
+    #lexa-music.dragging .lm-btn,#lexa-music.dragging .lm-btn::after{animation:none}
+    @keyframes lm-float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.035)}}
+    @keyframes lm-halo{0%,100%{opacity:.38;transform:scale(.96);box-shadow:0 0 5px rgba(232,199,102,.16)}
+      50%{opacity:.9;transform:scale(1.1);box-shadow:0 0 14px rgba(232,199,102,.4),0 0 24px rgba(212,175,55,.16)}}
+    @media (prefers-reduced-motion: reduce){#lexa-music .lm-btn,#lexa-music .lm-btn::after{animation:none}}
     #lexa-music .lm-panel{display:flex;align-items:center;gap:8px;max-width:0;opacity:0;
       overflow:hidden;white-space:nowrap;transition:max-width .25s,opacity .25s,padding .25s}
     #lexa-music:hover:not(.dragging) .lm-panel,#lexa-music:focus-within:not(.dragging) .lm-panel{max-width:190px;opacity:1;padding:0 10px}

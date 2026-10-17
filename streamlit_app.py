@@ -160,11 +160,18 @@ else:
 st.markdown(f"""<style>
     .stApp {{
         background-image: linear-gradient(rgba(23,14,10,.84), rgba(23,14,10,.90)), {background_source};
-        background-size: cover;
+        background-size: 100% 100%;
         background-position: center center;
         background-attachment: fixed;
         background-repeat: no-repeat;
+        background-color: #170e0a;
         min-height: 100vh;
+    }}
+    @media (max-width: 768px) {{
+        .stApp {{
+            background-size: cover;
+            background-position: center top;
+        }}
     }}
     header[data-testid="stHeader"], footer {{ background: transparent !important; }}
 </style>""", unsafe_allow_html=True)

@@ -261,25 +261,29 @@ function main(CFG) {
   btn.addEventListener('click', function () {
     if (suppressClick) return; // كان سحبًا وليس ضغطة
 
-    // أول ضغطة على السماعة تطلب التشغيل. حاول داخل حدث المستخدم نفسه
-    // لأن المتصفحات قد تمنع التشغيل إذا بدأ من callback غير مرتبط بضغطة.
-    if (firstIconStart) {
-      firstIconStart = false;
-      wantPlay = true;
+    // قبل بدء الموسيقى، كل ضغطة تطلب التشغيل ولا تكتم الصوت.
+    wantPlay = true;
+    if (!playing) {
+      muted = false;
+      if (vol < 5) vol = CFG.volume;
+      save('lexa_music_vol', vol);
+      apply();
+
       if (ready) {
-        tryPlay();
+        tryPlay(); // داخل حدث click مباشرةً لتوافق قيود المتصفح
       } else {
-        showPop('المشغل لسه بيحمّل. انتظر لحظات واضغط على السماعة مرة أخرى.');
+        showPop('المشغل لسه بيحمّل. انتظر لحظات ثم اضغط على السماعة مرة أخرى.');
+        log('play requested before player ready');
       }
+      firstIconStart = false;
       return;
     }
 
+    // بعد بدء الموسيقى فقط، تتحول الضغطة إلى كتم / إلغاء كتم.
     muted = !muted;
     if (!muted && vol < 5) vol = CFG.volume;
     save('lexa_music_vol', vol);
     apply();
-    wantPlay = true;
-    if (ready && !playing) tryPlay();
   });
 
   // ---------- المشغّل ----------
@@ -340,7 +344,10 @@ function main(CFG) {
         }
       });
       w.bind(P.SC.Widget.Events.PLAY, onPlaying);
-      w.bind(P.SC.Widget.Events.ERROR, function () { fail('خطأ من SoundCloud أثناء التشغيل.'); });
+      w.bind(P.SC.Widget.Events.ERROR, function (event) {
+        log('SoundCloud widget error:', event || '(no details)');
+        fail('SoundCloud رفض تشغيل المقطع. جرّب فتحه من مشغّل SoundCloud الظاهر هنا، أو استخدم رابط مقطع يسمح بالتضمين.');
+      });
       w.bind(P.SC.Widget.Events.FINISH, function () { playing = false; w.seekTo(0); w.play(); });
     }
 

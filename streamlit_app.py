@@ -90,10 +90,10 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stPopoverBody"] [data-testid="stRadio"] label { color:#f5ead8 !important; }
 .topbar-shell { width:100%; margin:0; padding:0; display:flex; align-items:center; min-height:32px; }
 .st-key-lexgo-topbar { position:fixed !important; top:2px !important; left:18px !important; right:18px !important; z-index:1001 !important; width:auto !important; max-width:none !important; margin:0 !important; padding:2px 0 !important; border:0 !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
- .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:ltr; justify-content:space-between; }
+ .st-key-lexgo-topbar [data-testid="stHorizontalBlock"] { align-items:center; gap:.45rem; direction:rtl; justify-content:space-between; }
  .st-key-lexgo-topbar [data-testid="column"] { display:flex; align-items:center; min-width:0; }
-.st-key-lexgo-topbar [data-testid="column"]:first-child { justify-content:flex-end; }
-.st-key-lexgo-topbar [data-testid="column"]:last-child { justify-content:flex-start; }
+.st-key-lexgo-topbar [data-testid="column"]:first-child { justify-content:flex-start; }
+.st-key-lexgo-topbar [data-testid="column"]:last-child { justify-content:flex-end; }
  .topbar-brand { color:#f4d37c; font-family:'Noto Kufi Arabic',sans-serif; text-align:right; padding:.2rem .25rem; white-space:nowrap; display:flex; align-items:center; gap:.65rem; }
 .brand-emblem { display:inline-grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border:1px solid rgba(255,231,151,.65); border-radius:12px; color:#29180b; background:linear-gradient(145deg,#ffe99a,#d5a63b 65%,#96651a); font-size:23px; font-weight:900; box-shadow:0 5px 16px rgba(212,175,55,.22),inset 0 1px 0 rgba(255,255,255,.65); }
 .brand-wordmark { display:flex; flex-direction:column; gap:1px; line-height:1.05; }
@@ -673,7 +673,7 @@ api_key_ready = bool(api_provider)
 
 # Compact glass header: app identity and account menu share one row.
 with st.container(key="lexgo-topbar"):
-    menu_col, brand_col = st.columns([1, 8], vertical_alignment="center")
+    brand_col, menu_col = st.columns([8, 1], vertical_alignment="center")
     with menu_col:
         avatar_value = str(current_user.get("avatar_data", "emoji:⚖️"))
         avatar_label = avatar_value.replace("emoji:", "") if avatar_value.startswith("emoji:") else "👤"

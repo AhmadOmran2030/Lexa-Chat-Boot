@@ -97,7 +97,13 @@ class LegalIndex:
                 metadata_bonus += 15.0
             confidences.append(min(100.0, .65 * semantic + .25 * lexical + metadata_bonus))
         confidences = np.array(confidences, dtype=float)
-        qualified = np.where(confidences >= threshold)[0]
+        # A direct request such as "ما نص المادة 1" already contains an
+        # authoritative database key. Do not reject the exact article merely
+        # because its legal wording has few lexical words in common with the
+        # short question. The 70% threshold remains active for semantic-only
+        # searches without an explicit article/law/paragraph filter.
+        explicit_lookup = any(filters.get(key) for key in ("article_number", "law_number", "law_year", "paragraph_number"))
+        qualified = np.arange(len(candidates)) if explicit_lookup else np.where(confidences >= threshold)[0]
         if len(qualified) == 0:
             return []
         order = qualified[np.argsort(confidences[qualified])[::-1][:k]]

@@ -43,6 +43,10 @@ st.set_page_config(page_title="LexGO | المستشار القانوني", page_
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"] { direction: rtl; text-align: right; font-family: 'IBM Plex Sans Arabic', sans-serif; }
+header[data-testid="stHeader"], header[data-testid="stHeader"] > div, [data-testid="stToolbar"], [data-testid="stDecoration"] { background: transparent !important; background-color: transparent !important; box-shadow: none !important; border: 0 !important; }
+header[data-testid="stHeader"] { height: 3.5rem !important; }
+footer, footer::before, [data-testid="stStatusWidget"], [data-testid="stBottomBlockContainer"] { background: transparent !important; background-color: transparent !important; box-shadow: none !important; border: 0 !important; }
+#MainMenu { background: transparent !important; }
 [data-testid="stSidebar"] { direction: rtl; background: linear-gradient(180deg,rgba(33,20,15,.72) 0%,rgba(47,29,20,.58) 100%); border-left: 1px solid rgba(212,175,55,.22); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
 section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width: min(350px, 88vw) !important; }
 [data-testid="stSidebar"] .block-container { padding-top: 2rem; padding-right:1.15rem; padding-left:1.15rem; direction:rtl; text-align:right; }
@@ -57,6 +61,7 @@ section[data-testid="stSidebar"] { width: min(350px, 88vw) !important; min-width
 [data-testid="stSidebar"] [data-testid="stMetric"] { direction:rtl; text-align:right; }
 [data-testid="stSidebar"] [data-testid="stMetricLabel"], [data-testid="stSidebar"] [data-testid="stMetricValue"] { text-align:right; }
 .stApp { background: radial-gradient(circle at 85% 5%, rgba(180,130,40,.16), transparent 28%), radial-gradient(circle at 10% 80%, rgba(104,54,28,.22), transparent 30%), #170e0a; }
+.stApp > header { background: transparent !important; }
 .main .block-container { max-width: 980px; width:100%; margin:0 auto; padding: 2.5rem 1.5rem 5rem; }
 .brand-mark { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .brand-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:14px; background:linear-gradient(135deg,#f4d06f,#a87519); color:#2b180b; font-size:24px; box-shadow:0 10px 28px rgba(212,175,55,.22); }
@@ -147,15 +152,21 @@ blockquote { border-right:3px solid #d4af37 !important; border-left:0 !important
 
 BACKGROUND_PATH = APP_ROOT / "assets" / "legal-library-background.jpg"
 if BACKGROUND_PATH.exists():
-    background_b64 = base64.b64encode(BACKGROUND_PATH.read_bytes()).decode("ascii")
-    st.markdown(f"""<style>
+    background_source = f"url(\"data:image/jpeg;base64,{base64.b64encode(BACKGROUND_PATH.read_bytes()).decode('ascii')}\")"
+else:
+    # Fallback for deployments where the assets directory was not committed.
+    background_source = 'url("https://i.pinimg.com/736x/ed/f1/21/edf121540936156cf73f74e6a08e4440.jpg")'
+st.markdown(f"""<style>
     .stApp {{
-        background-image: linear-gradient(rgba(23,14,10,.84), rgba(23,14,10,.90)), url("data:image/jpeg;base64,{background_b64}");
+        background-image: linear-gradient(rgba(23,14,10,.84), rgba(23,14,10,.90)), {background_source};
         background-size: cover;
-        background-position: center;
+        background-position: center center;
         background-attachment: fixed;
+        background-repeat: no-repeat;
+        min-height: 100vh;
     }}
-    </style>""", unsafe_allow_html=True)
+    header[data-testid="stHeader"], footer {{ background: transparent !important; }}
+</style>""", unsafe_allow_html=True)
 
 
 def _secret(name: str, default: str = "") -> str:
@@ -459,7 +470,7 @@ def ask_llm(question: str, results: list[dict]) -> str:
         for i, r in enumerate(results, 1)
     )
     selected_language = LANGUAGES.get(st.session_state.get("response_language", "ar"), LANGUAGES["ar"])
-    system_prompt = f"أنت مساعد بحث قانوني. أجب من النصوص المسترجعة فقط. ابدأ بخلاصة مباشرة، ثم اشرح بنقاط قصيرة عند الحاجة، واذكر رقم القانون والسنة والمادة والفقرة والبند والصفحة. لا تستنتج معلومة غير موجودة ولا تقدم رأيًا قانونيًا شخصيًا. إذا لم تكفِ المصادر قل ذلك بوضوح. {selected_language['instruction']}"
+    system_prompt = f"أنت مساعد بحث قانوني. أجب من النصوص المسترجعة فقط. ابدأ بخلاصة مفهومة بلغة بسيطة للمستخدم، ولا تكتفِ بعبارة مثل (تنص المادة) دون شرح مختصر لمعناها. استخدم نقاطًا قصيرة إذا كان النص يحتوي على عناصر متعددة. لا تعِد كتابة النص الكامل؛ سيعرضه التطبيق بعد خلاصة الإجابة. اذكر رقم القانون والسنة والمادة والفقرة والبند والصفحة عند توفرها. لا تستنتج معلومة غير موجودة ولا تقدم رأيًا قانونيًا شخصيًا. إذا لم تكفِ المصادر قل ذلك بوضوح. {selected_language['instruction']}"
     user_prompt = f"السؤال: {question}\n\nالمصادر:\n{context}"
     if gemini_key:
         answer = call_gemini(user_prompt, system_prompt)
@@ -800,11 +811,27 @@ def complete_article_result(question: str, results: list[dict]) -> list[dict]:
     article_rows.sort(key=lambda row: (int(row.get("paragraph_number") or 0), int(row.get("clause_number") or 0)))
     if article_rows:
         merged = dict(top)
-        merged["text"] = "\n".join(str(row.get("text", "")).strip() for row in article_rows if row.get("text"))
+        merged["text"] = "\n\n".join(str(row.get("text", "")).strip() for row in article_rows if row.get("text"))
         merged["paragraph_number"] = "كاملة"
         merged["clause_number"] = "كاملة"
         return [merged]
     return results[:1]
+
+
+def format_legal_answer(answer: str, question: str, results: list[dict]) -> str:
+    """Present the authoritative retrieved article in a readable chat layout."""
+    answer = (answer or "").strip()
+    filters = query_filters(question)
+    if not results or not filters.get("article_number"):
+        return answer
+    full_text = str(results[0].get("text") or "").strip()
+    if not full_text:
+        return answer
+    # For an explicit article-text request, never let an LLM summarize or omit
+    # wording. The database text is shown verbatim, with blank lines separating
+    # the indexed paragraphs/chunks for easier reading.
+    full_text = re.sub(r"\n{3,}", "\n\n", full_text)
+    return f"**النص الكامل للمادة {filters['article_number']}**\n\n{full_text}"
 
 
 def verified_search(question: str) -> list[dict]:
@@ -860,8 +887,7 @@ for message in st.session_state.chat_history:
                     <div class="source-field"><small>الفقرة</small><strong>{html.escape(str(result.get("paragraph_number") or "؟"))}</strong></div>
                     <div class="source-field"><small>البند</small><strong>{html.escape(str(result.get("clause_number") or "؟"))}</strong></div>
                     <div class="source-field"><small>الصفحة</small><strong>{html.escape(str(result.get("page_start") or "؟"))}</strong></div>
-                </div><p class="legal-text">{html.escape(str(result.get("text") or ""))}</p></div>''', unsafe_allow_html=True)
-                st.caption(f"مرشحات البحث: {message.get('filters') or 'بحث عام'}")
+                </div><div class="source-chip">المصدر: مكتبة القوانين المحفوظة</div></div>''', unsafe_allow_html=True)
 
 if not st.session_state.chat_history:
     st.markdown('<div class="chat-empty"><div class="chat-empty-title">كيف يمكنني مساعدتك؟</div><div style="color:#d9cbb7;font-size:.86rem;line-height:1.8">اسأل عن نص مادة، رقم قانون، فقرة أو بند داخل الملفات المرفوعة.</div><div style="margin-top:.6rem"><span class="suggestion-pill">ما نص المادة 29 من القانون المدني؟</span><span class="suggestion-pill">اعرض الفقرات والبنود داخل المادة</span><span class="suggestion-pill">هل توجد هذه المعلومة في الملفات؟</span></div></div>', unsafe_allow_html=True)
@@ -891,8 +917,11 @@ if question:
         elif intent == "legal_specific":
             primary_results = complete_article_result(question, pre_results)
             if primary_results:
-                # Gemini receives only the retrieved legal passages and formats them simply.
-                answer = ask_llm(question_with_temporary_context(question), primary_results)
+                if filters.get("article_number"):
+                    # Exact article requests are answered directly from Supabase.
+                    answer = format_legal_answer("", question, primary_results)
+                else:
+                    answer = ask_llm(question_with_temporary_context(question), primary_results)
             else:
                 answer = localized_message("not_found")
         else:
